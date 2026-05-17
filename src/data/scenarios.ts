@@ -259,9 +259,9 @@ export const scenarios: Scenario[] = [
     htfContext: 'Daily structure is bullish. The prior week formed equal lows. Daily bias is long.',
     sessionContext: 'NY AM. NQ dipped below the equal lows formed over 3 sessions, swept the SSL with a wick, then immediately printed a reversal candle.',
     beforeCandles: [
-      [10,72,52,65,78],[34,50,68,44,74],[58,65,50,58,70],
-      [82,48,68,42,74],[106,65,52,58,70],[130,50,68,44,74],
-      [154,65,48,58,70],[178,46,90,40,102],[202,98,68,62,106],
+      [10,72,52,65,74],[34,50,68,44,74],[58,65,50,58,74],
+      [82,48,68,42,74],[106,65,52,58,74],[130,50,68,44,74],
+      [154,65,48,58,74],[178,46,90,40,102],[202,98,68,62,84],
     ],
     beforeLines: [
       { x1:10,y1:74,x2:220,y2:74,color:'rgba(248,113,113,0.6)',dashed:true,label:'Equal Lows (SSL)',lx:14,ly:70 },
@@ -314,7 +314,7 @@ export const scenarios: Scenario[] = [
     beforeCandles: [
       [10,35,55,28,62],[34,52,68,46,74],[58,64,48,58,70],
       [82,45,62,38,68],[106,58,75,52,80],[130,72,55,65,78],
-      [154,52,72,46,78],[178,68,92,62,100],[202,98,70,65,104],
+      [154,52,72,46,78],[178,68,92,62,100],[202,95,48,44,100],
     ],
     beforeLines: [
       { x1:10,y1:55,x2:220,y2:55,color:'rgba(52,211,153,0.5)',dashed:true,label:'CHoCH level',lx:14,ly:51 },
@@ -483,20 +483,19 @@ export const scenarios: Scenario[] = [
     htfContext: 'Daily structure bullish. 15m CHoCH formed earlier in the session confirming bullish bias for NY AM.',
     sessionContext: '10:00–11:00 AM EST Silver Bullet window. ES formed a 1m FVG after sweeping a local SSL at 10:08 AM. The window is active.',
     beforeCandles: [
-      [10,65,75,60,80],[34,72,62,66,77],[58,60,72,54,78],
-      [82,70,85,64,90],[106,92,78,86,96],[130,75,60,68,80],
-      [154,58,72,52,78],[178,70,85,64,90],[202,88,72,82,94],
+      [10,72,62,68,78],[34,64,74,58,80],[58,72,62,66,78],
+      [82,64,76,60,82],[106,84,74,80,90],[130,78,46,42,84],
+      [154,50,62,46,60],[178,58,68,54,74],[202,70,80,66,84],
     ],
-    beforeZones: [{ x:130,y:60,w:130,h:22,type:ZA }],
+    beforeZones: [{ x:106,y:60,w:226,h:20,type:ZA }],
     beforeLines: [
-      { x1:0,y1:82,x2:240,y2:82,color:'rgba(248,113,113,0.4)',dashed:true,label:'SSL swept',lx:4,ly:78 },
-      { x1:130,y1:60,x2:260,y2:60,color:'rgba(245,158,11,0.4)',dashed:true },
-      { x1:130,y1:82,x2:260,y2:82,color:'rgba(245,158,11,0.4)',dashed:true,label:'1m FVG',lx:134,ly:56 },
+      { x1:10,y1:80,x2:332,y2:80,color:'rgba(248,113,113,0.4)',dashed:true,label:'SSL swept',lx:14,ly:76 },
+      { x1:106,y1:60,x2:332,y2:60,color:'rgba(245,158,11,0.4)',dashed:true,label:'1m FVG',lx:110,ly:56 },
     ],
     afterCandles: [
-      [226,70,58,64,76],[250,56,44,50,62],[274,42,30,36,48],[298,28,18,22,34],
+      [226,78,66,74,84],[252,64,52,60,70],[278,50,38,46,56],[304,36,26,32,42],
     ],
-    afterZones: [{ x:130,y:60,w:180,h:22,type:ZA }],
+    afterZones: [{ x:106,y:60,w:226,h:20,type:ZA }],
     q1: {
       prompt: 'What time-based ICT framework makes this 1m FVG particularly high probability?',
       options: ['The London Kill Zone window', 'The 10:00–11:00 AM Silver Bullet window', 'The ICT 9:50 macro', 'The NY PM Silver Bullet (2–3 PM)'],
@@ -715,21 +714,21 @@ export const scenarios: Scenario[] = [
     htfContext: 'Weekly bearish. 4H BOS to the downside this week. Daily bias short.',
     sessionContext: 'NY AM. A single 5m candle moved 80+ NQ points — displacement. This is 3× the average candle size. A bearish FVG is left below the displacement candle. Price is now pulling back to fill part of it.',
     beforeCandles: [
-      [10,35,55,28,62],[34,52,68,45,74],[58,65,80,58,86],
-      // DISPLACEMENT
-      [82,78,12,8,84],
-      // Post-displacement small candles
-      [106,14,8,5,20],[130,10,5,3,15],
-      // Pullback
-      [154,6,28,2,32],[178,26,45,20,50],[202,42,58,36,64],
+      [10,28,46,22,52],[34,44,62,38,68],[58,54,70,50,70],
+      // DISPLACEMENT — big bear candle, C1.ly=70, C3.hy=90 → FVG y=70–90
+      [82,12,88,8,94],
+      // Post-displacement
+      [106,90,98,90,106],[130,100,88,94,106],
+      // Pullback into FVG
+      [154,90,78,84,96],[178,80,70,74,86],[202,72,62,68,78],
     ],
-    beforeZones: [{ x:58,y:28,w:190,h:38,type:ZA }],
+    beforeZones: [{ x:82,y:70,w:184,h:20,type:ZA }],
     beforeLines: [
-      { x1:58,y1:28,x2:248,y2:28,color:'rgba(245,158,11,0.4)',dashed:true },
-      { x1:58,y1:66,x2:248,y2:66,color:'rgba(245,158,11,0.4)',dashed:true,label:'Displacement FVG',lx:62,ly:24 },
+      { x1:58,y1:70,x2:266,y2:70,color:'rgba(245,158,11,0.4)',dashed:true,label:'Displacement FVG',lx:62,ly:66 },
+      { x1:82,y1:90,x2:266,y2:90,color:'rgba(245,158,11,0.4)',dashed:true },
     ],
     afterCandles: [
-      [226,56,70,50,76],[250,68,82,62,88],[274,80,95,74,100],
+      [226,60,74,56,80],[252,72,86,68,92],[278,84,98,80,104],
     ],
     q1: {
       prompt: 'A single 5m candle moved 80+ points. What does this signal in ICT?',
@@ -886,18 +885,18 @@ export const scenarios: Scenario[] = [
     htfContext: 'Daily bearish. NY AM session delivered a bearish move and built a bearish OB. Intraday structure is short.',
     sessionContext: '2:00–3:00 PM Silver Bullet window. ES had a small rally during lunch. At 2:08 PM, price swept a local BSL (equal highs from the lunch consolidation), then created a 1m bearish FVG on the reversal.',
     beforeCandles: [
-      [10,60,52,56,64],[34,50,58,44,62],[58,56,50,52,60],
-      [82,52,44,48,56],[106,42,52,36,58],[130,50,58,44,62],
-      [154,55,30,22,60],[178,32,50,28,56],[202,48,62,44,68],
+      [10,68,60,64,74],[34,62,54,58,68],[58,56,48,52,62],
+      [82,52,44,48,58],[106,46,54,42,60],[130,52,44,48,58],
+      [154,50,58,32,58],[178,56,78,52,84],[202,80,88,78,92],
     ],
-    beforeZones: [{ x:154,y:30,w:100,h:28,type:ZA }],
+    beforeZones: [{ x:178,y:58,w:154,h:20,type:ZA }],
     beforeLines: [
-      { x1:10,y1:58,x2:270,y2:58,color:'rgba(248,113,113,0.4)',dashed:true,label:'BSL swept',lx:14,ly:53 },
-      { x1:154,y1:30,x2:270,y2:30,color:'rgba(245,158,11,0.4)',dashed:true },
-      { x1:154,y1:58,x2:270,y2:58,color:'rgba(245,158,11,0.4)',dashed:true,label:'1m FVG',lx:158,ly:26 },
+      { x1:10,y1:46,x2:332,y2:46,color:'rgba(248,113,113,0.4)',dashed:true,label:'BSL swept',lx:14,ly:42 },
+      { x1:178,y1:58,x2:332,y2:58,color:'rgba(245,158,11,0.4)',dashed:true,label:'1m FVG',lx:182,ly:54 },
+      { x1:178,y1:78,x2:332,y2:78,color:'rgba(245,158,11,0.4)',dashed:true },
     ],
     afterCandles: [
-      [226,60,72,54,78],[250,70,84,64,90],[274,82,95,76,100],
+      [226,86,96,82,102],[252,94,106,90,112],[278,104,116,100,120],
     ],
     q1: {
       prompt: 'What time window makes this 1m FVG setup particularly high probability?',
@@ -998,15 +997,15 @@ export const scenarios: Scenario[] = [
     htfContext: 'Daily structure: bearish OB overhead. 4H bias is short. Prior 3 sessions formed equal highs.',
     sessionContext: 'NY AM. ES ran above 3 equal highs formed over the prior 3 sessions — a textbook BSL sweep. The move was fast, with an immediate wick reversal below the equal highs level.',
     beforeCandles: [
-      [10,42,62,36,68],[34,60,44,54,66],[58,42,60,36,64],
-      [82,58,42,52,64],[106,40,58,34,64],[130,56,40,50,62],
-      [154,38,16,10,42],[178,18,36,12,42],[202,34,52,28,58],
+      [10,50,64,38,70],[34,60,48,38,66],[58,50,62,38,68],
+      [82,58,46,38,62],[106,48,60,38,66],[130,58,46,38,62],
+      [154,52,62,28,68],[178,60,74,55,80],[202,72,86,67,92],
     ],
     beforeLines: [
-      { x1:10,y1:42,x2:260,y2:42,color:'rgba(248,113,113,0.5)',dashed:true,label:'Equal Highs (BSL)',lx:14,ly:38 },
+      { x1:10,y1:38,x2:270,y2:38,color:'rgba(248,113,113,0.5)',dashed:true,label:'Equal Highs (BSL)',lx:14,ly:34 },
     ],
     afterCandles: [
-      [226,48,64,42,70],[250,62,78,56,84],[274,76,92,70,98],[298,88,104,82,110],
+      [226,84,98,78,104],[252,96,110,90,116],[278,108,120,104,126],[304,118,128,114,132],
     ],
     q1: {
       prompt: 'Three equal highs formed over 3 sessions. What type of liquidity is this?',
@@ -1166,18 +1165,18 @@ export const scenarios: Scenario[] = [
     htfContext: 'Daily bearish bias established at the open. 15m CHoCH to the downside confirmed.',
     sessionContext: 'NY AM. The 9:50–10:10 ICT macro window is active. NQ ran to a local BSL (equal highs from 9:45) at 9:52 AM. A 1m bearish FVG formed on the reversal. You have 8 minutes left in the macro.',
     beforeCandles: [
-      [10,58,50,54,62],[34,48,56,42,62],[58,54,46,50,58],
-      [82,44,26,18,48],[106,28,44,24,50],[130,42,55,36,60],
-      [154,52,66,46,70],[178,64,50,58,70],[202,48,38,44,54],
+      [10,58,50,54,62],[34,52,62,48,66],[58,60,52,56,64],
+      [82,54,46,52,60],[106,48,56,52,62],[130,54,46,52,60],
+      [154,54,62,24,66],[178,60,86,56,92],[202,90,82,86,96],
     ],
-    beforeZones: [{ x:82,y:18,w:50,h:34,type:ZA }],
+    beforeZones: [{ x:154,y:66,w:178,h:20,type:ZA }],
     beforeLines: [
-      { x1:10,y1:58,x2:260,y2:58,color:'rgba(248,113,113,0.4)',dashed:true,label:'BSL swept',lx:14,ly:53 },
-      { x1:82,y1:18,x2:260,y2:18,color:'rgba(245,158,11,0.4)',dashed:true },
-      { x1:82,y1:52,x2:260,y2:52,color:'rgba(245,158,11,0.4)',dashed:true,label:'1m FVG',lx:86,ly:14 },
+      { x1:10,y1:50,x2:332,y2:50,color:'rgba(248,113,113,0.4)',dashed:true,label:'BSL swept',lx:14,ly:46 },
+      { x1:154,y1:66,x2:332,y2:66,color:'rgba(245,158,11,0.4)',dashed:true },
+      { x1:154,y1:86,x2:332,y2:86,color:'rgba(245,158,11,0.4)',dashed:true,label:'1m FVG',lx:158,ly:62 },
     ],
     afterCandles: [
-      [226,36,50,30,56],[250,48,62,42,68],[274,60,78,54,84],
+      [226,80,92,76,98],[252,90,104,86,110],[278,102,116,98,122],
     ],
     q1: {
       prompt: 'What makes the 9:50–10:10 window special in ICT methodology?',

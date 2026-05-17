@@ -39,7 +39,7 @@ function Home({ onStart, progress }: { onStart:(s:Scenario)=>void; progress:Retu
   return (
     <div style={{ background:'#05050a', minHeight:'100vh' }}>
       <header style={{ background:'#07070e', borderBottom:'1px solid rgba(30,41,59,0.5)' }}>
-        <div className="max-w-5xl mx-auto px-4 py-6">
+        <div className="max-w-5xl mx-auto px-4 py-4">
 
           {/* Top row */}
           <div className="flex items-start justify-between flex-wrap gap-6 mb-5">
@@ -96,8 +96,8 @@ function Home({ onStart, progress }: { onStart:(s:Scenario)=>void; progress:Retu
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <main className="max-w-5xl mx-auto px-4 py-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {shown.map(s => {
             const m = CAT[s.category]
             const res = progress.getResult(s.id)
@@ -158,7 +158,7 @@ function Player({ scenario, onBack, onComplete }: { scenario:Scenario; onBack:()
         <span style={{ marginLeft:'auto', fontSize:9, fontWeight:900, textTransform:'uppercase', letterSpacing:'0.1em', padding:'2px 8px', borderRadius:999, color:m.color, background:m.bg, border:`1px solid ${m.border}` }}>{m.label}</span>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
+      <div className="max-w-4xl mx-auto px-4 py-3 space-y-3">
         {/* Title */}
         <div>
           <h1 className="text-xl font-black text-white m-0">{scenario.title}</h1>
@@ -166,7 +166,7 @@ function Player({ scenario, onBack, onComplete }: { scenario:Scenario; onBack:()
         </div>
 
         {/* Context */}
-        <div className="rounded-2xl border border-slate-800/50 p-4 space-y-2" style={{ background:'#0b0b14' }}>
+        <div className="rounded-2xl border border-slate-800/50 p-3 space-y-1.5" style={{ background:'#0b0b14' }}>
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 m-0">Context</p>
           <p className="text-xs text-slate-400 leading-relaxed m-0"><span className="text-slate-300 font-semibold">HTF: </span>{scenario.htfContext}</p>
           <p className="text-xs text-slate-400 leading-relaxed m-0"><span className="text-slate-300 font-semibold">Session: </span>{scenario.sessionContext}</p>
@@ -191,7 +191,7 @@ function Player({ scenario, onBack, onComplete }: { scenario:Scenario; onBack:()
         </a>
 
         {/* Questions */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {QS.map((qKey, qi) => {
             const q = scenario[qKey]
             const selected = answers[qKey]
