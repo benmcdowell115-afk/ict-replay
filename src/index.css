@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+* { box-sizing: border-box; }
+body { margin: 0; background: #05050a; color: #fff; font-family: system-ui, sans-serif; }
+
+@keyframes pulse-zone {
+  0%,100% { opacity: 0.65; }
+  50%      { opacity: 1; }
+}
+.pulse-zone { animation: pulse-zone 2.4s ease-in-out infinite; }
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide-up { animation: slide-up 0.22s ease-out both; }
+
+@keyframes pop-in {
+  from { transform: scale(0.93); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.pop-in { animation: pop-in 0.18s ease-out both; }
