@@ -178,6 +178,7 @@ function Player({ scenario, onBack, onComplete }: { scenario:Scenario; onBack:()
           <ReplayChartLW
             mode={submitted?'after':'before'}
             scenarioId={scenario.id}
+            category={scenario.category}
           />
         </div>
 
