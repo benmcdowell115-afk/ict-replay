@@ -1,833 +1,815 @@
-// ICT concept diagrams — precise custom SVG, no third-party charting library
-// Each scenario maps to a hand-crafted diagram showing the exact ICT concept
+// ICT concept diagrams — precise custom SVG
 import { useMemo } from 'react'
 import type { Scenario } from '../data/scenarios'
 
 // ── Layout ────────────────────────────────────────────────────────────────────
-const VW = 560          // viewBox width
-const VH = 280          // viewBox height
-const CT = 18           // chart top y   (price = 100)
-const CB = 254          // chart bottom y (price =   0)
-const CR = 488          // right edge of chart (label area: 488–560)
-const SP = 24           // px between candle centers
-const BW = 10           // candle body half-width (body = 2*BW-1 px wide)
+const VW = 560; const VH = 280
+const CT = 14; const CB = 258          // chart top/bottom y  (price 100 / price 0)
+const CR = 488                          // chart right x; label area 488-560
+const SP = 24; const BW = 9            // candle spacing; body half-width
 
-// price [0–100] → SVG y
-const py = (p: number) => CB - p * (CB - CT) / 100
-// candle index → SVG x (center)
-const cx = (i: number) => 14 + i * SP
+const py = (p: number) => CB - p * (CB - CT) / 100   // price → SVG y
+const cx = (i: number) => 14 + i * SP                 // index → SVG x center
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface CD { o: number; h: number; l: number; c: number }   // price units [0–100]
+interface CD { o: number; h: number; l: number; c: number }
 
 type Ann =
-  | { k: 'zone';  p1: number; p2: number; xL?: number; xR?: number; col: string; op?: number }
-  | { k: 'level'; p: number;  col: string; lbl: string; dash?: boolean; xL?: number }
-  | { k: 'mark';  i: number;  pos: 'above'|'below'; txt: string; col: string; shape?: 'arrow'|'circle' }
-  | { k: 'badge'; txt: string; col: string; x: number; y: number }
+  | { k: 'zone';  p1: number; p2: number; xL?: number; col: string; op?: number }
+  | { k: 'level'; p: number; col: string; lbl: string; dash?: boolean }
+  | { k: 'mark';  i: number; pos: 'above'|'below'; txt: string; col: string; shape?: 'circle' }
 
 interface DC { candles: CD[]; di: number; before: Ann[]; after: Ann[] }
 
-// ── CSS animations ────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const zone  = (p1: number, p2: number, col: string, op: number, xL?: number): Ann =>
+  ({ k:'zone', p1, p2, col, op, xL })
+const level = (p: number, col: string, lbl: string, dash = true): Ann =>
+  ({ k:'level', p, col, lbl, dash })
+const mark  = (i: number, pos: 'above'|'below', txt: string, col: string, shape?: 'circle'): Ann =>
+  ({ k:'mark', i, pos, txt, col, shape })
+
+// ── CSS ───────────────────────────────────────────────────────────────────────
 const CSS = `
   @keyframes cdIn  { from{opacity:0} to{opacity:1} }
-  @keyframes revIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
-  @keyframes pulse { 0%,100%{opacity:1;transform:translateY(0)} 50%{opacity:.2;transform:translateY(-3px)} }
+  @keyframes revIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+  @keyframes pulse { 0%,100%{opacity:1;transform:none} 50%{opacity:.15;transform:translateY(-4px)} }
 `
 
 // ── Primitives ────────────────────────────────────────────────────────────────
-function Candle({ i, d, delay }: { i: number; d: CD; delay: number }) {
+function Candle({ i, d, del }: { i: number; d: CD; del: number }) {
   const bull = d.c >= d.o
   const col  = bull ? '#34d399' : '#f87171'
-  const bTop = py(Math.max(d.o, d.c))
-  const bBot = py(Math.min(d.o, d.c))
-  const bH   = Math.max(bBot - bTop, 1.5)
-  const x    = cx(i)
+  const bT   = py(Math.max(d.o, d.c)); const bB = py(Math.min(d.o, d.c))
+  const bH   = Math.max(bB - bT, 1.5)
   return (
-    <g style={{ animation: `cdIn .12s ${delay.toFixed(2)}s both` }}>
-      <line x1={x} y1={py(d.h)} x2={x} y2={py(d.l)} stroke={col} strokeWidth={1.5} strokeLinecap="round" />
-      <rect x={x - BW + 1} y={bTop} width={(BW - 1) * 2} height={bH} fill={col} rx={.5} />
+    <g style={{ animation: `cdIn .1s ${del.toFixed(2)}s both` }}>
+      <line x1={cx(i)} y1={py(d.h)} x2={cx(i)} y2={py(d.l)}
+        stroke={col} strokeWidth={1.5} strokeLinecap="round" />
+      <rect x={cx(i)-BW} y={bT} width={BW*2} height={bH} fill={col} rx={.5} />
     </g>
   )
 }
 
-function ZoneEl({ a }: { a: Extract<Ann, { k: 'zone' }> }) {
-  const xL = a.xL ?? 2
-  const xR = a.xR ?? CR - 2
+function ZoneEl({ a }: { a: Extract<Ann,{k:'zone'}> }) {
+  const xL = a.xL ?? 2; const xR = CR - 2
+  const yT = py(a.p2); const yB = py(a.p1)   // p2=higher price=lower y
   return (
-    <rect x={xL} y={py(a.p2)} width={xR - xL} height={py(a.p1) - py(a.p2)}
-      fill={a.col} opacity={a.op ?? .15} rx={1} />
+    <g>
+      <rect x={xL} y={yT} width={xR-xL} height={yB-yT}
+        fill={a.col} opacity={a.op ?? .15} />
+      {/* sharp zone boundaries */}
+      <line x1={xL} y1={yT} x2={xR} y2={yT} stroke={a.col} strokeWidth={1.2} opacity={.8} />
+      <line x1={xL} y1={yB} x2={xR} y2={yB} stroke={a.col} strokeWidth={1.2} opacity={.8} />
+    </g>
   )
 }
 
-function LevelEl({ a, delay = 0 }: { a: Extract<Ann, { k: 'level' }>; delay?: number }) {
+function LevelEl({ a, del = 0 }: { a: Extract<Ann,{k:'level'}>; del?: number }) {
   const y = py(a.p)
-  const xL = a.xL ?? 2
   return (
-    <g style={delay ? { animation: `revIn .3s ${delay}s both` } : undefined}>
-      <line x1={xL} y1={y} x2={CR - 2} y2={y}
-        stroke={a.col} strokeWidth={1} strokeDasharray={a.dash !== false ? '4 3' : undefined} />
-      <text x={CR + 3} y={y + 4} fill={a.col} fontSize={9} fontFamily="monospace" fontWeight={700}
-        style={{ userSelect: 'none' }}>{a.lbl}</text>
+    <g style={del ? { animation:`revIn .3s ${del}s both` } : undefined}>
+      <line x1={2} y1={y} x2={CR-2} y2={y} stroke={a.col} strokeWidth={.9}
+        strokeDasharray={a.dash!==false ? '5 3' : undefined} />
+      <text x={CR+4} y={y+4} fill={a.col} fontSize={9.5} fontFamily="monospace"
+        fontWeight={700}>{a.lbl}</text>
     </g>
   )
 }
 
-function MarkEl({ a, candles, delay = 0 }: {
-  a: Extract<Ann, { k: 'mark' }>; candles: CD[]; delay?: number
-}) {
-  const d = candles[a.i]
-  if (!d) return null
-  const x    = cx(a.i)
-  const isUp = a.pos === 'above'
-  const py0  = isUp ? py(d.h) - 14 : py(d.l) + 14
-  const pts  = isUp
-    ? `${x},${py0 + 6} ${x - 4},${py0} ${x + 4},${py0}`
-    : `${x},${py0 - 6} ${x - 4},${py0} ${x + 4},${py0}`
+function MarkEl({ a, cs, del = 0 }: { a: Extract<Ann,{k:'mark'}>; cs: CD[]; del?: number }) {
+  const d = cs[a.i]; if (!d) return null
+  const up = a.pos === 'above'
+  const base = up ? py(d.h) - 16 : py(d.l) + 16
+  const pts  = up
+    ? `${cx(a.i)},${base+8} ${cx(a.i)-5},${base} ${cx(a.i)+5},${base}`
+    : `${cx(a.i)},${base-8} ${cx(a.i)-5},${base} ${cx(a.i)+5},${base}`
   return (
-    <g style={delay ? { animation: `revIn .3s ${delay}s both` } : undefined}>
-      {a.shape !== 'circle'
-        ? <polygon points={pts} fill={a.col} />
-        : <circle cx={x} cy={py0} r={4} fill={a.col} opacity={.9} />
+    <g style={del ? { animation:`revIn .3s ${del}s both` } : undefined}>
+      {a.shape === 'circle'
+        ? <circle cx={cx(a.i)} cy={base} r={4.5} fill={a.col} opacity={.9} />
+        : <polygon points={pts} fill={a.col} />
       }
-      <text x={x} y={isUp ? py0 - 3 : py0 + 11}
-        fill={a.col} fontSize={8} fontFamily="monospace" fontWeight={700}
-        textAnchor="middle" style={{ userSelect: 'none' }}>{a.txt}</text>
+      <text x={cx(a.i)} y={up ? base-4 : base+13} fill={a.col}
+        fontSize={8} fontFamily="monospace" fontWeight={700} textAnchor="middle">{a.txt}</text>
     </g>
   )
 }
 
-function DecisionPulse({ di, candles }: { di: number; candles: CD[] }) {
-  const d = candles[di]
-  if (!d) return null
-  const x = cx(di)
-  const y = py(d.h) - 20
+function DecisionPulse({ di, cs }: { di: number; cs: CD[] }) {
+  const d = cs[di]; if (!d) return null
+  const y = py(d.h) - 22
   return (
     <g style={{ animation: 'pulse 1.4s ease-in-out infinite' }}>
-      <polygon points={`${x},${y + 8} ${x - 5},${y} ${x + 5},${y}`} fill="#f59e0b" />
-      <text x={x} y={y - 3} fill="#f59e0b" fontSize={7.5} fontFamily="monospace"
+      <polygon points={`${cx(di)},${y+9} ${cx(di)-6},${y} ${cx(di)+6},${y}`} fill="#f59e0b" />
+      <text x={cx(di)} y={y-3} fill="#f59e0b" fontSize={8} fontFamily="monospace"
         fontWeight={700} textAnchor="middle">DECISION</text>
     </g>
   )
 }
 
-// ── Diagram data builders ─────────────────────────────────────────────────────
+// ── DIAGRAM PATTERNS ──────────────────────────────────────────────────────────
 
-// Helpers
-const zone = (p1: number, p2: number, col: string, op?: number, xL?: number, xR?: number): Ann =>
-  ({ k: 'zone', p1, p2, col, op, xL, xR })
-const level = (p: number, col: string, lbl: string, dash = true, xL?: number): Ann =>
-  ({ k: 'level', p, col, lbl, dash, xL })
-const mark = (i: number, pos: 'above' | 'below', txt: string, col: string, shape?: 'arrow' | 'circle'): Ann =>
-  ({ k: 'mark', i, pos, txt, col, shape })
-
-// ─── BULL FVG ─────────────────────────────────────────────────────────────────
-// SSL sweep → uptrend → C1/C2(disp)/C3 → retrace into FVG → decision
+// BULLISH FVG
+// SSL sweep → uptrend → C1/C2(disp)/C3 gap → retrace into FVG → decision → bull run
 function bullFVG(): DC {
-  const SSL = 36; const C1H = 60; const C3L = 76; const BSL = 94
+  const SSL=28, C1H=58, C3L=74, BSL=95
+  // C1 at idx 11, C2 at 12, C3 at 13
   const candles: CD[] = [
     // uptrend context
-    {o:28,h:30,l:26,c:30}, {o:30,h:33,l:28,c:32}, {o:32,h:35,l:30,c:34},
-    {o:34,h:36,l:32,c:35}, {o:35,h:37,l:33,c:36}, {o:36,h:38,l:34,c:37},
-    // equal lows (3 touches of SSL=36)
-    {o:37,h:39,l:SSL,c:38}, {o:38,h:40,l:SSL,c:39}, {o:39,h:41,l:SSL,c:40},
-    // SSL sweep: wick to 28, closes back above SSL
-    {o:40,h:41,l:28,c:40},
+    {o:20,h:23,l:18,c:23}, {o:23,h:26,l:21,c:26}, {o:26,h:29,l:24,c:29}, {o:29,h:31,l:27,c:31},
+    // 3 equal lows at SSL=28 (wick tips all at 28)
+    {o:31,h:33,l:SSL,c:32}, {o:32,h:35,l:SSL,c:34}, {o:34,h:36,l:SSL,c:35},
+    // SSL SWEEP — big wick to 18, body stays above SSL
+    {o:35,h:36,l:18,c:34},
     // recovery
-    {o:40,h:45,l:38,c:44}, {o:44,h:49,l:42,c:48}, {o:48,h:54,l:46,c:53},
-    // C1: small bull, high = C1H
-    {o:53,h:C1H,l:51,c:58},
-    // C2: massive displacement
-    {o:58,h:82,l:57,c:81},
-    // C3: low = C3L (gap between C1H and C3L)
-    {o:81,h:84,l:C3L,c:83},
-    // retrace toward FVG
-    {o:83,h:84,l:77,c:78}, {o:78,h:80,l:76,c:77},
-    // DECISION: price at FVG top (C3L=76), wick inside zone
-    {o:77,h:78,l:66,c:70},
-    // after: bull continuation to BSL
-    {o:70,h:77,l:68,c:77}, {o:77,h:85,l:75,c:85}, {o:85,h:BSL,l:83,c:BSL-1},
+    {o:34,h:39,l:32,c:39}, {o:39,h:45,l:37,c:45}, {o:45,h:51,l:43,c:51},
+    // C1: small bull, high wick = C1H (FVG bottom boundary)
+    {o:51,h:C1H,l:49,c:55},
+    // C2: MASSIVE displacement — body spans the entire FVG gap
+    {o:55,h:84,l:54,c:83},
+    // C3: small bull, LOW wick = C3L (FVG top boundary)  C3L > C1H ✓
+    {o:83,h:86,l:C3L,c:85},
+    // retracement back toward FVG
+    {o:85,h:86,l:77,c:78}, {o:78,h:80,l:75,c:76},
+    // DECISION: wick deep into FVG zone, closes inside
+    {o:76,h:77,l:62,c:67},
+    // after: strong bull continuation
+    {o:67,h:76,l:65,c:76}, {o:76,h:86,l:74,c:86}, {o:86,h:BSL,l:84,c:BSL-1},
   ]
-  const before: Ann[] = [
-    level(SSL,  '#f87171', 'SSL'),
-    zone(C1H, C3L, '#f59e0b', .10),
-  ]
-  const after: Ann[] = [
-    level(SSL,  '#f87171', 'SSL'),
-    level(C3L,  '#f59e0b', 'FVG TOP'),
-    level(C1H,  '#f59e0b', 'FVG BOT'),
-    level(BSL,  '#34d399', 'BSL TARGET'),
-    zone(C1H, C3L, '#f59e0b', .20),
-    mark(9,  'below', 'SSL SWEEP', '#f87171'),
-    mark(13, 'below', 'C1', '#94a3b8', 'circle'),
-    mark(14, 'below', 'DISP', '#f59e0b'),
-    mark(15, 'above', 'C3', '#94a3b8', 'circle'),
-    mark(18, 'above', 'DECISION', '#f59e0b'),
-  ]
-  return { candles, di: 18, before, after }
-}
-
-// ─── BEAR FVG ─────────────────────────────────────────────────────────────────
-function bearFVG(): DC {
-  const BSL = 68; const C1L = 42; const C3H = 56; const SSL = 10
-  const candles: CD[] = [
-    // downtrend context
-    {o:74,h:76,l:72,c:72}, {o:72,h:74,l:70,c:70}, {o:70,h:72,l:68,c:68},
-    {o:68,h:70,l:66,c:66}, {o:66,h:68,l:64,c:65}, {o:65,h:67,l:63,c:64},
-    // equal highs (3 touches of BSL=68)
-    {o:64,h:BSL,l:62,c:63}, {o:63,h:BSL,l:61,c:62}, {o:62,h:BSL,l:60,c:61},
-    // BSL sweep: wick to 74, closes back below BSL
-    {o:61,h:74,l:59,c:61},
-    // recovery down
-    {o:61,h:63,l:57,c:58}, {o:58,h:60,l:54,c:55}, {o:55,h:57,l:51,c:52},
-    // C1: small bear, low = C1L
-    {o:52,h:54,l:C1L,c:44},
-    // C2: massive bear displacement
-    {o:44,h:45,l:20,c:21},
-    // C3: high = C3H (gap between C3H and C1L)
-    {o:21,h:C3H,l:18,c:19},
-    // pullback up into FVG
-    {o:19,h:25,l:17,c:24}, {o:24,h:30,l:22,c:29},
-    // DECISION: at FVG midpoint
-    {o:29,h:36,l:27,c:32},
-    // after: bear continuation
-    {o:32,h:34,l:25,c:26}, {o:26,h:28,l:18,c:19}, {o:19,h:21,l:SSL,c:SSL+1},
-  ]
-  const before: Ann[] = [
-    level(BSL, '#34d399', 'BSL'),
-    zone(C1L, C3H, '#f59e0b', .10),
-  ]
-  const after: Ann[] = [
-    level(BSL, '#34d399', 'BSL'),
-    level(C1L, '#f59e0b', 'FVG BOT'),
-    level(C3H, '#f59e0b', 'FVG TOP'),
-    level(SSL, '#f87171', 'SSL TARGET'),
-    zone(C1L, C3H, '#f59e0b', .20),
-    mark(9,  'above', 'BSL SWEEP', '#34d399'),
-    mark(13, 'above', 'C1', '#94a3b8', 'circle'),
-    mark(14, 'above', 'DISP', '#f59e0b'),
-    mark(15, 'below', 'C3', '#94a3b8', 'circle'),
-    mark(18, 'below', 'DECISION', '#f59e0b'),
-  ]
-  return { candles, di: 18, before, after }
-}
-
-// ─── BEARISH OB / JUDAS SWING ─────────────────────────────────────────────────
-function bearOBJudas(): DC {
-  const BSL = 76; const OB_TOP = 72; const OB_BOT = 62; const SSL = 24
-  const candles: CD[] = [
-    // downtrend context
-    {o:65,h:67,l:63,c:64}, {o:64,h:66,l:62,c:62}, {o:62,h:64,l:60,c:61},
-    {o:61,h:63,l:59,c:60}, {o:60,h:62,l:58,c:59},
-    // judas spike UP to BSL
-    {o:59,h:60,l:57,c:60}, {o:60,h:65,l:58,c:65}, {o:65,h:BSL,l:63,c:74},
-    // OB = last bull candle before reversal
-    {o:74,h:OB_TOP,l:72,c:OB_TOP-1},
-    // BSL sweep wick
-    {o:OB_TOP-1,h:BSL+4,l:68,c:69},
-    // big bear displacement
-    {o:69,h:70,l:44,c:45},
-    // drift lower
-    {o:45,h:48,l:42,c:43}, {o:43,h:46,l:40,c:41},
-    // retrace to OB
-    {o:41,h:46,l:39,c:46}, {o:46,h:52,l:44,c:51},
-    {o:51,h:58,l:49,c:57}, {o:57,h:64,l:55,c:63},
-    // DECISION at OB midpoint
-    {o:63,h:OB_TOP+1,l:61,c:OB_BOT+5},
-    // after: bear continuation
-    {o:OB_BOT+5,h:68,l:52,c:53}, {o:53,h:56,l:44,c:45},
-    {o:45,h:48,l:36,c:37}, {o:37,h:40,l:SSL,c:SSL+2},
-  ]
-  const before: Ann[] = [
-    level(BSL, '#34d399', 'BSL (Prior High)'),
-    zone(OB_BOT, OB_TOP, '#60a5fa', .12),
-  ]
-  const after: Ann[] = [
-    level(BSL,     '#34d399', 'BSL (Prior High)'),
-    level(OB_TOP,  '#60a5fa', 'OB TOP'),
-    level(OB_BOT,  '#60a5fa', 'OB BOT'),
-    level(SSL,     '#f87171', 'SSL TARGET'),
-    zone(OB_BOT, OB_TOP, '#60a5fa', .22),
-    mark(7,  'above', 'JUDAS SPIKE', '#a78bfa'),
-    mark(9,  'above', 'BSL SWEPT', '#34d399'),
-    mark(8,  'above', 'OB', '#60a5fa', 'circle'),
-    mark(10, 'above', 'DISP', '#f87171'),
-    mark(17, 'above', 'DECISION', '#f59e0b'),
-  ]
-  return { candles, di: 17, before, after }
-}
-
-// ─── SSL SWEEP → REVERSAL ─────────────────────────────────────────────────────
-function sslSweep(): DC {
-  const SSL = 38; const FVG_TOP = 60; const FVG_BOT = 48; const BSL = 86
-  const candles: CD[] = [
-    // sideways with slight drift
-    {o:52,h:55,l:49,c:53}, {o:53,h:56,l:50,c:54}, {o:54,h:56,l:51,c:53},
-    {o:53,h:55,l:50,c:52}, {o:52,h:54,l:50,c:51},
-    // 3 equal lows (SSL=38)
-    {o:51,h:53,l:SSL,c:52}, {o:52,h:54,l:SSL,c:53}, {o:53,h:55,l:SSL,c:54},
-    // BIG SSL sweep: wick to 28, closes at 52 (well above SSL)
-    {o:54,h:55,l:28,c:52},
-    // reversal impulse: C1/C2/C3 creating bull FVG
-    {o:52,h:FVG_BOT,l:50,c:FVG_BOT-1},
-    {o:FVG_BOT-1,h:68,l:FVG_BOT-2,c:67},
-    {o:67,h:70,l:FVG_TOP,c:69},
-    // minor pullback to FVG
-    {o:69,h:70,l:61,c:62}, {o:62,h:64,l:59,c:60},
-    // DECISION at FVG
-    {o:60,h:62,l:52,c:56},
-    // after: bull run
-    {o:56,h:64,l:54,c:64}, {o:64,h:73,l:62,c:73},
-    {o:73,h:81,l:71,c:81}, {o:81,h:BSL,l:79,c:BSL-1},
-  ]
-  const before: Ann[] = [
-    level(SSL, '#f87171', 'SSL (Equal Lows)'),
-    zone(FVG_BOT, FVG_TOP, '#f59e0b', .10),
-  ]
-  const after: Ann[] = [
-    level(SSL,     '#f87171', 'SSL (Equal Lows)'),
-    level(FVG_TOP, '#f59e0b', 'FVG TOP'),
-    level(FVG_BOT, '#f59e0b', 'FVG BOT'),
-    level(BSL,     '#34d399', 'BSL TARGET'),
-    zone(FVG_BOT, FVG_TOP, '#f59e0b', .20),
-    mark(8,  'below', 'SSL SWEEP', '#f87171'),
-    mark(9,  'below', 'C1', '#94a3b8', 'circle'),
-    mark(10, 'below', 'DISP', '#f59e0b'),
-    mark(11, 'above', 'C3', '#94a3b8', 'circle'),
-    mark(14, 'above', 'DECISION', '#f59e0b'),
-  ]
-  return { candles, di: 14, before, after }
-}
-
-// ─── BSL SWEEP → REVERSAL SHORT ───────────────────────────────────────────────
-function bslSweep(): DC {
-  const BSL = 68; const FVG_BOT = 44; const FVG_TOP = 56; const SSL = 16
-  const candles: CD[] = [
-    {o:52,h:54,l:49,c:53}, {o:53,h:55,l:50,c:54}, {o:54,h:56,l:51,c:55},
-    {o:55,h:57,l:52,c:56}, {o:56,h:58,l:53,c:57},
-    // 3 equal highs (BSL=68)
-    {o:57,h:BSL,l:55,c:58}, {o:58,h:BSL,l:56,c:59}, {o:59,h:BSL,l:57,c:60},
-    // BSL sweep: wick to 76, closes at 56 (below BSL)
-    {o:60,h:76,l:58,c:56},
-    // bear impulse: C1/C2/C3 bearish FVG
-    {o:56,h:58,l:FVG_TOP,c:FVG_TOP+1},
-    {o:FVG_TOP+1,h:FVG_TOP+2,l:34,c:35},
-    {o:35,h:FVG_BOT,l:32,c:33},
-    // pullback to FVG
-    {o:33,h:40,l:31,c:39}, {o:39,h:46,l:37,c:45},
-    // DECISION
-    {o:45,h:52,l:43,c:47},
-    // after: bear run
-    {o:47,h:49,l:38,c:38}, {o:38,h:40,l:28,c:28},
-    {o:28,h:30,l:18,c:18}, {o:18,h:20,l:SSL,c:SSL+2},
-  ]
-  const before: Ann[] = [
-    level(BSL, '#34d399', 'BSL (Equal Highs)'),
-    zone(FVG_BOT, FVG_TOP, '#f59e0b', .10),
-  ]
-  const after: Ann[] = [
-    level(BSL,     '#34d399', 'BSL (Equal Highs)'),
-    level(FVG_TOP, '#f59e0b', 'FVG TOP'),
-    level(FVG_BOT, '#f59e0b', 'FVG BOT'),
-    level(SSL,     '#f87171', 'SSL TARGET'),
-    zone(FVG_BOT, FVG_TOP, '#f59e0b', .20),
-    mark(8,  'above', 'BSL SWEEP', '#34d399'),
-    mark(9,  'above', 'C1', '#94a3b8', 'circle'),
-    mark(10, 'above', 'DISP', '#f59e0b'),
-    mark(11, 'below', 'C3', '#94a3b8', 'circle'),
-    mark(14, 'below', 'DECISION', '#f59e0b'),
-  ]
-  return { candles, di: 14, before, after }
-}
-
-// ─── CHoCH BULLISH ────────────────────────────────────────────────────────────
-function chochBull(): DC {
-  const SSL = 30; const CHOCH = 58; const FVG_BOT = 62; const FVG_TOP = 74; const BSL = 88
-  const candles: CD[] = [
-    // downtrend: lower highs, lower lows
-    {o:72,h:74,l:68,c:69}, {o:69,h:70,l:64,c:65},
-    {o:65,h:67,l:61,c:62}, {o:62,h:CHOCH+2,l:58,c:59},
-    {o:59,h:60,l:55,c:56}, {o:56,h:57,l:52,c:53},
-    {o:53,h:54,l:49,c:50}, {o:50,h:51,l:46,c:47},
-    // consolidate near SSL
-    {o:47,h:48,l:43,c:44}, {o:44,h:46,l:SSL+2,c:45},
-    // SSL sweep
-    {o:45,h:46,l:SSL-8,c:44},
-    // CHoCH: close above last lower high (CHOCH=58)
-    {o:44,h:52,l:42,c:51}, {o:51,h:60,l:49,c:60},
-    // CHOCH BREAK bar
-    {o:60,h:66,l:58,c:65},
-    // FVG left by CHoCH impulse: C1=idx11, C2=12, C3=13
-    // FVG zone: FVG_BOT to FVG_TOP
-    // Retrace
-    {o:65,h:67,l:63,c:64}, {o:64,h:65,l:62,c:63},
-    // DECISION at FVG
-    {o:63,h:65,l:68-6,c:66},
-    // after: bull run
-    {o:66,h:74,l:64,c:74}, {o:74,h:82,l:72,c:82}, {o:82,h:BSL,l:80,c:BSL-1},
-  ]
-  const before: Ann[] = [
-    level(SSL,   '#f87171', 'SSL'),
-    level(CHOCH, '#34d399', 'CHoCH Level', true),
-    zone(FVG_BOT, FVG_TOP, '#f59e0b', .10),
-  ]
-  const after: Ann[] = [
-    level(SSL,     '#f87171', 'SSL'),
-    level(CHOCH,   '#34d399', 'CHoCH Level'),
-    level(FVG_TOP, '#f59e0b', 'FVG TOP'),
-    level(FVG_BOT, '#f59e0b', 'FVG BOT'),
-    level(BSL,     '#34d399', 'BSL TARGET'),
-    zone(FVG_BOT, FVG_TOP, '#f59e0b', .20),
-    mark(10, 'below', 'SSL SWEEP', '#f87171'),
-    mark(13, 'below', 'CHoCH BREAK', '#34d399'),
-    mark(16, 'above', 'DECISION', '#f59e0b'),
-  ]
-  return { candles, di: 16, before, after }
-}
-
-// ─── AMD BULLISH ──────────────────────────────────────────────────────────────
-function amdBull(): DC {
-  const ASIA_L = 42; const ASIA_H = 62; const FVG_BOT = 68; const FVG_TOP = 78; const BSL = 92
-  const candles: CD[] = [
-    // ACCUMULATION: asia range (tight sideways)
-    {o:50,h:ASIA_H,l:ASIA_L,c:52}, {o:52,h:ASIA_H,l:ASIA_L,c:54},
-    {o:54,h:ASIA_H,l:ASIA_L,c:52}, {o:52,h:ASIA_H,l:ASIA_L,c:50},
-    {o:50,h:ASIA_H,l:ASIA_L,c:52}, {o:52,h:ASIA_H,l:ASIA_L,c:54},
-    {o:54,h:ASIA_H,l:ASIA_L,c:56}, {o:56,h:ASIA_H,l:ASIA_L,c:54},
-    // MANIPULATION: spike below Asia low (SSL sweep)
-    {o:54,h:55,l:28,c:52},
-    // recovery back above Asia low
-    {o:52,h:57,l:50,c:56}, {o:56,h:62,l:54,c:61},
-    // DISTRIBUTION: big bull run, FVG created
-    {o:61,h:70,l:59,c:70}, {o:70,h:76,l:68,c:75},
-    // C1 = 12, C2 disp = 13, C3 = 14
-    {o:75,h:FVG_BOT,l:73,c:FVG_BOT-1},
-    {o:FVG_BOT-1,h:84,l:FVG_BOT-2,c:83},
-    {o:83,h:85,l:FVG_TOP,c:84},
-    // retrace to FVG
-    {o:84,h:85,l:79,c:80}, {o:80,h:82,l:78,c:79},
-    // DECISION
-    {o:79,h:80,l:72,c:74},
-    // after: bull run to BSL
-    {o:74,h:80,l:72,c:80}, {o:80,h:88,l:78,c:88}, {o:88,h:BSL,l:86,c:BSL-1},
-  ]
-  const before: Ann[] = [
-    level(ASIA_L, '#f87171', 'Asia Low (SSL)', true),
-    level(ASIA_H, '#34d399', 'Asia High (BSL)', true),
-    zone(FVG_BOT, FVG_TOP, '#f59e0b', .10),
-  ]
-  const after: Ann[] = [
-    level(ASIA_L, '#f87171', 'Asia Low (SSL)'),
-    level(ASIA_H, '#34d399', 'Asia High (BSL)'),
-    level(FVG_TOP, '#f59e0b', 'FVG TOP'),
-    level(FVG_BOT, '#f59e0b', 'FVG BOT'),
-    level(BSL,     '#34d399', 'BSL TARGET'),
-    zone(FVG_BOT, FVG_TOP, '#f59e0b', .20),
-    mark(0,  'above', 'ACCUMULATION', '#94a3b8', 'circle'),
-    mark(8,  'below', 'MANIPULATION', '#a78bfa'),
-    mark(11, 'above', 'DISTRIBUTION', '#34d399', 'circle'),
-    mark(18, 'above', 'DECISION', '#f59e0b'),
-  ]
-  return { candles, di: 18, before, after }
-}
-
-// ─── AMD BEARISH ──────────────────────────────────────────────────────────────
-function amdBear(): DC {
-  const ASIA_L = 42; const ASIA_H = 62; const FVG_TOP = 38; const FVG_BOT = 26; const SSL = 10
-  const candles: CD[] = [
-    {o:54,h:ASIA_H,l:ASIA_L,c:52}, {o:52,h:ASIA_H,l:ASIA_L,c:54},
-    {o:54,h:ASIA_H,l:ASIA_L,c:52}, {o:52,h:ASIA_H,l:ASIA_L,c:50},
-    {o:50,h:ASIA_H,l:ASIA_L,c:52}, {o:52,h:ASIA_H,l:ASIA_L,c:54},
-    {o:54,h:ASIA_H,l:ASIA_L,c:52}, {o:52,h:ASIA_H,l:ASIA_L,c:50},
-    // MANIPULATION: judas spike above Asia high
-    {o:50,h:78,l:48,c:50},
-    // recovery back below Asia high
-    {o:50,h:56,l:48,c:49}, {o:49,h:52,l:44,c:45},
-    // DISTRIBUTION: big bear, FVG created
-    {o:45,h:47,l:34,c:35}, {o:35,h:37,l:28,c:29},
-    // C1=12, C2=13, C3=14 bear FVG
-    {o:29,h:31,l:FVG_BOT,c:28},
-    {o:28,h:30,l:18,c:19},
-    {o:19,h:FVG_TOP,l:17,c:18},
-    // pullback
-    {o:18,h:24,l:16,c:23}, {o:23,h:28,l:21,c:27},
-    // DECISION
-    {o:27,h:34,l:25,c:29},
-    // after: bear continuation
-    {o:29,h:31,l:20,c:20}, {o:20,h:22,l:12,c:12}, {o:12,h:14,l:SSL,c:SSL+2},
-  ]
-  const before: Ann[] = [
-    level(ASIA_L, '#f87171', 'Asia Low (SSL)', true),
-    level(ASIA_H, '#34d399', 'Asia High (BSL)', true),
-    zone(FVG_BOT, FVG_TOP, '#f59e0b', .10),
-  ]
-  const after: Ann[] = [
-    level(ASIA_L, '#f87171', 'Asia Low (SSL)'),
-    level(ASIA_H, '#34d399', 'Asia High (BSL)'),
-    level(FVG_TOP, '#f59e0b', 'FVG TOP'),
-    level(FVG_BOT, '#f59e0b', 'FVG BOT'),
-    level(SSL,     '#f87171', 'SSL TARGET'),
-    zone(FVG_BOT, FVG_TOP, '#f59e0b', .20),
-    mark(0,  'above', 'ACCUMULATION', '#94a3b8', 'circle'),
-    mark(8,  'above', 'MANIPULATION', '#a78bfa'),
-    mark(11, 'above', 'DISTRIBUTION', '#f87171', 'circle'),
-    mark(18, 'below', 'DECISION', '#f59e0b'),
-  ]
-  return { candles, di: 18, before, after }
-}
-
-// ─── JUDAS SHORT ──────────────────────────────────────────────────────────────
-function judasShort(): DC {
-  const BSL = 74; const OB_TOP = 69; const OB_BOT = 61; const SSL = 24
-  const candles: CD[] = [
-    // downtrend showing bearish context
-    {o:68,h:70,l:65,c:66}, {o:66,h:68,l:63,c:64}, {o:64,h:66,l:61,c:62},
-    {o:62,h:64,l:59,c:60}, {o:60,h:62,l:57,c:58},
-    // prior high visible
-    {o:58,h:60,l:56,c:59}, {o:59,h:61,l:57,c:60},
-    // NY OPEN: Judas spike UP to BSL
-    {o:60,h:62,l:58,c:62}, {o:62,h:BSL,l:60,c:72},
-    // OB = last bull candle
-    {o:72,h:OB_TOP,l:70,c:OB_TOP-1},
-    // BSL spike wick
-    {o:OB_TOP-1,h:BSL+4,l:66,c:67},
-    // BIG bear displacement
-    {o:67,h:68,l:42,c:43},
-    // drift lower
-    {o:43,h:46,l:40,c:41},
-    // rally back to OB
-    {o:41,h:46,l:39,c:46}, {o:46,h:52,l:44,c:52},
-    {o:52,h:58,l:50,c:57}, {o:57,h:63,l:55,c:62},
-    // DECISION at OB
-    {o:62,h:OB_TOP,l:60,c:(OB_TOP+OB_BOT)/2|0},
-    // after: bear run to SSL
-    {o:(OB_TOP+OB_BOT)/2|0,h:64,l:52,c:53},
-    {o:53,h:56,l:42,c:43}, {o:43,h:46,l:34,c:35}, {o:35,h:38,l:SSL,c:SSL+2},
-  ]
-  const before: Ann[] = [
-    level(BSL,    '#34d399', 'Prior Day High'),
-    zone(OB_BOT, OB_TOP, '#60a5fa', .12),
-  ]
-  const after: Ann[] = [
-    level(BSL,    '#34d399', 'BSL (Prior High)'),
-    level(OB_TOP, '#60a5fa', 'OB TOP'),
-    level(OB_BOT, '#60a5fa', 'OB BOT'),
-    level(SSL,    '#f87171', 'SSL TARGET'),
-    zone(OB_BOT, OB_TOP, '#60a5fa', .22),
-    mark(8,  'above', 'JUDAS SPIKE', '#a78bfa'),
-    mark(9,  'above', 'OB', '#60a5fa', 'circle'),
-    mark(10, 'above', 'BSL SWEEP', '#34d399'),
-    mark(11, 'above', 'DISP', '#f87171'),
-    mark(17, 'above', 'DECISION', '#f59e0b'),
-  ]
-  return { candles, di: 17, before, after }
-}
-
-// ─── SILVER BULLET (1m — long or short) ─────────────────────────────────────
-function silverBullet(dir: 'long' | 'short' = 'long'): DC {
-  const bull = dir === 'long'
-  if (bull) {
-    const SSL = 40; const FVG_TOP = 62; const FVG_BOT = 52; const BSL = 80
-    const candles: CD[] = [
-      // time context (small choppy candles = 1m)
-      {o:54,h:56,l:52,c:55},{o:55,h:57,l:53,c:54},{o:54,h:55,l:51,c:52},
-      {o:52,h:53,l:49,c:50},{o:50,h:51,l:48,c:49},{o:49,h:51,l:48,c:50},
-      {o:50,h:52,l:SSL+2,c:51},{o:51,h:53,l:SSL,c:52},{o:52,h:53,l:SSL,c:51},
-      // SSL sweep
-      {o:51,h:52,l:28,c:50},
-      // 1m FVG: C1/C2/C3
-      {o:50,h:FVG_BOT,l:48,c:FVG_BOT-1},
-      {o:FVG_BOT-1,h:68,l:FVG_BOT-2,c:67},
-      {o:67,h:69,l:FVG_TOP,c:68},
-      // retrace
-      {o:68,h:69,l:63,c:64},{o:64,h:65,l:62,c:63},
-      // DECISION
-      {o:63,h:64,l:55,c:58},
-      // after
-      {o:58,h:66,l:56,c:66},{o:66,h:74,l:64,c:74},{o:74,h:BSL,l:72,c:BSL-1},
-    ]
-    const before: Ann[] = [
+  const xL = cx(11) - BW   // zone starts at C1
+  return {
+    candles, di: 16,
+    before: [
       level(SSL, '#f87171', 'SSL'),
-      zone(FVG_BOT, FVG_TOP, '#f59e0b', .10),
-    ]
-    const after: Ann[] = [
-      level(SSL,     '#f87171', 'SSL'),
-      level(FVG_TOP, '#f59e0b', 'FVG TOP'),
-      level(FVG_BOT, '#f59e0b', 'FVG BOT'),
-      level(BSL,     '#34d399', 'BSL TARGET'),
-      zone(FVG_BOT, FVG_TOP, '#f59e0b', .20),
-      mark(9,  'below', 'SSL SWEEP', '#f87171'),
-      mark(10, 'below', 'C1', '#94a3b8', 'circle'),
-      mark(11, 'below', 'DISP', '#f59e0b'),
-      mark(12, 'above', 'C3', '#94a3b8', 'circle'),
-      mark(15, 'above', 'DECISION', '#f59e0b'),
-    ]
-    return { candles, di: 15, before, after }
-  } else {
-    const BSL = 66; const FVG_BOT = 44; const FVG_TOP = 54; const SSL = 24
-    const candles: CD[] = [
-      {o:52,h:54,l:50,c:53},{o:53,h:55,l:51,c:54},{o:54,h:56,l:52,c:55},
-      {o:55,h:57,l:53,c:56},{o:56,h:58,l:54,c:57},{o:57,h:59,l:55,c:58},
-      {o:58,h:BSL,l:56,c:59},{o:59,h:BSL,l:57,c:60},{o:60,h:BSL,l:58,c:61},
-      // BSL sweep
-      {o:61,h:76,l:59,c:60},
-      // 1m bearish FVG
-      {o:60,h:62,l:FVG_TOP,c:FVG_TOP+1},
-      {o:FVG_TOP+1,h:FVG_TOP+2,l:34,c:35},
-      {o:35,h:FVG_BOT,l:32,c:33},
-      // pullback
-      {o:33,h:40,l:31,c:39},{o:39,h:46,l:37,c:45},
-      // DECISION
-      {o:45,h:52,l:43,c:47},
-      // after
-      {o:47,h:49,l:37,c:38},{o:38,h:40,l:28,c:28},{o:28,h:30,l:SSL,c:SSL+2},
-    ]
-    const before: Ann[] = [
-      level(BSL, '#34d399', 'BSL'),
-      zone(FVG_BOT, FVG_TOP, '#f59e0b', .10),
-    ]
-    const after: Ann[] = [
-      level(BSL,     '#34d399', 'BSL'),
-      level(FVG_TOP, '#f59e0b', 'FVG TOP'),
-      level(FVG_BOT, '#f59e0b', 'FVG BOT'),
-      level(SSL,     '#f87171', 'SSL TARGET'),
-      zone(FVG_BOT, FVG_TOP, '#f59e0b', .20),
-      mark(9,  'above', 'BSL SWEEP', '#34d399'),
-      mark(10, 'above', 'C1', '#94a3b8', 'circle'),
-      mark(11, 'above', 'DISP', '#f59e0b'),
-      mark(12, 'below', 'C3', '#94a3b8', 'circle'),
-      mark(15, 'below', 'DECISION', '#f59e0b'),
-    ]
-    return { candles, di: 15, before, after }
+      zone(C1H, C3L, '#f59e0b', .12, xL),
+    ],
+    after: [
+      level(SSL, '#f87171', 'SSL'),
+      level(C3L, '#f59e0b', 'FVG TOP'), level(C1H, '#f59e0b', 'FVG BOT'),
+      level(BSL, '#34d399', 'BSL TARGET'),
+      zone(C1H, C3L, '#f59e0b', .22, xL),
+      mark(7,'below','SSL SWEEP','#f87171'), mark(11,'below','C1','#94a3b8','circle'),
+      mark(12,'below','DISP','#f59e0b'), mark(13,'above','C3','#94a3b8','circle'),
+      mark(16,'above','DECISION','#f59e0b'),
+    ],
   }
 }
 
-// ─── BREAKER BLOCK ────────────────────────────────────────────────────────────
-function breaker(dir: 'bear' | 'bull' = 'bear'): DC {
-  const bull = dir === 'bull'
-  if (!bull) {
-    // Bear breaker: bullish OB flips to resistance after being violated
-    const OB_TOP = 68; const OB_BOT = 58; const SSL = 22
-    const candles: CD[] = [
-      // OB held → rally (shows OB was bullish)
-      {o:52,h:55,l:50,c:55},{o:55,h:60,l:53,c:60},{o:60,h:65,l:58,c:64},
-      {o:64,h:OB_TOP+2,l:62,c:OB_TOP+1},
-      // OB zone context candles
-      {o:OB_TOP+1,h:OB_TOP+3,l:OB_BOT,c:OB_BOT+2},
-      // original OB was here, shows bullish context
-      {o:OB_BOT+2,h:OB_BOT+4,l:OB_BOT-2,c:OB_BOT+3},
-      // VIOLATION: close below OB zone
-      {o:OB_BOT+3,h:OB_BOT+5,l:42,c:44},
-      {o:44,h:46,l:38,c:40},{o:40,h:42,l:34,c:36},
-      // drift
-      {o:36,h:38,l:32,c:34},{o:34,h:36,l:30,c:32},
-      // rally back to breaker (former OB)
-      {o:32,h:36,l:30,c:36},{o:36,h:42,l:34,c:42},
-      {o:42,h:48,l:40,c:48},{o:48,h:54,l:46,c:54},
-      {o:54,h:60,l:52,c:59},{o:59,h:64,l:57,c:63},
-      // DECISION at breaker zone midpoint
-      {o:63,h:OB_TOP,l:61,c:(OB_TOP+OB_BOT)/2|0},
-      // after: bear
-      {o:(OB_TOP+OB_BOT)/2|0,h:64,l:50,c:51},
-      {o:51,h:54,l:40,c:41},{o:41,h:44,l:SSL,c:SSL+2},
-    ]
-    const before: Ann[] = [
-      zone(OB_BOT, OB_TOP, '#60a5fa', .14),
-    ]
-    const after: Ann[] = [
-      level(OB_TOP, '#60a5fa', 'BREAKER TOP'),
-      level(OB_BOT, '#60a5fa', 'BREAKER BOT'),
-      level(SSL,    '#f87171', 'SSL TARGET'),
-      zone(OB_BOT, OB_TOP, '#60a5fa', .22),
-      mark(5,  'below', 'BULL OB (was support)', '#60a5fa', 'circle'),
-      mark(6,  'above', 'OB VIOLATED', '#f87171'),
-      mark(17, 'above', 'DECISION', '#f59e0b'),
-    ]
-    return { candles, di: 17, before, after }
-  } else {
-    // Bull breaker: bearish OB flips to support
-    const OB_TOP = 48; const OB_BOT = 38; const BSL = 82
-    const candles: CD[] = [
-      {o:54,h:56,l:52,c:52},{o:52,h:54,l:50,c:50},{o:50,h:52,l:48,c:48},
-      {o:48,h:OB_TOP+2,l:OB_BOT,c:OB_BOT+2},
-      {o:OB_BOT+2,h:OB_TOP,l:OB_BOT-2,c:OB_BOT-2},
-      // VIOLATION: close above OB zone
-      {o:OB_BOT-2,h:56,l:OB_TOP-2,c:56},
-      {o:56,h:62,l:54,c:62},{o:62,h:68,l:60,c:68},
-      {o:68,h:72,l:66,c:70},{o:70,h:74,l:68,c:72},
-      // pullback to breaker
-      {o:72,h:74,l:66,c:66},{o:66,h:68,l:60,c:60},
-      {o:60,h:62,l:54,c:54},{o:54,h:56,l:46,c:47},
-      {o:47,h:50,l:44,c:45},{o:45,h:48,l:42,c:44},
-      // DECISION at breaker
-      {o:44,h:48,l:42,c:(OB_TOP+OB_BOT)/2|0},
-      // after: bull
-      {o:(OB_TOP+OB_BOT)/2|0,h:54,l:42,c:54},
-      {o:54,h:64,l:52,c:64},{o:64,h:74,l:62,c:74},{o:74,h:BSL,l:72,c:BSL-1},
-    ]
-    const before: Ann[] = [
-      zone(OB_BOT, OB_TOP, '#60a5fa', .14),
-    ]
-    const after: Ann[] = [
-      level(OB_TOP, '#60a5fa', 'BREAKER TOP'),
-      level(OB_BOT, '#60a5fa', 'BREAKER BOT'),
-      level(BSL,    '#34d399', 'BSL TARGET'),
-      zone(OB_BOT, OB_TOP, '#60a5fa', .22),
-      mark(3,  'above', 'BEAR OB (was resist)', '#60a5fa', 'circle'),
-      mark(5,  'below', 'OB VIOLATED', '#34d399'),
-      mark(16, 'below', 'DECISION', '#f59e0b'),
-    ]
-    return { candles, di: 16, before, after }
-  }
-}
-
-// ─── OTE ZONE ────────────────────────────────────────────────────────────────
-function oteZone(): DC {
-  const SWL = 28; const SWH = 78; const BSL = 90
-  const OTE_T = 58; const OTE_B = 48
-  const EQUIL = 53  // 50% midpoint
-  const candles: CD[] = [
-    // establish swing low
-    {o:30,h:32,l:SWL,c:32},
-    // impulse up (establishes swing)
-    {o:32,h:38,l:30,c:38},{o:38,h:46,l:36,c:45},{o:45,h:54,l:43,c:54},
-    {o:54,h:63,l:52,c:62},{o:62,h:70,l:60,c:70},{o:70,h:SWH,l:68,c:SWH-1},
-    // retracement into OTE zone
-    {o:SWH-1,h:SWH,l:72,c:72},{o:72,h:74,l:68,c:69},{o:69,h:70,l:65,c:65},
-    {o:65,h:66,l:61,c:62},{o:62,h:63,l:58,c:59},{o:59,h:60,l:55,c:56},
-    {o:56,h:57,l:OTE_T+1,c:OTE_T-1},
-    // in OTE zone
-    {o:OTE_T-1,h:OTE_T,l:OTE_B+2,c:OTE_B+3},
-    // DECISION
-    {o:OTE_B+3,h:OTE_T+1,l:OTE_B,c:OTE_B+5},
-    // after: bull delivery to BSL
-    {o:OTE_B+5,h:58,l:OTE_B+3,c:58},{o:58,h:66,l:56,c:66},
-    {o:66,h:74,l:64,c:74},{o:74,h:82,l:72,c:82},{o:82,h:BSL,l:80,c:BSL-1},
-  ]
-  const before: Ann[] = [
-    level(SWH,   '#34d399', 'Swing High', false),
-    level(SWL,   '#f87171', 'Swing Low', false),
-    level(EQUIL, '#64748b', 'Equilibrium 50%', true),
-    zone(OTE_B, OTE_T, '#a78bfa', .14),
-  ]
-  const after: Ann[] = [
-    level(SWH,   '#34d399', 'Swing High', false),
-    level(SWL,   '#f87171', 'Swing Low', false),
-    level(EQUIL, '#64748b', 'Equilibrium'),
-    level(OTE_T, '#a78bfa', 'OTE 62%'),
-    level(OTE_B, '#a78bfa', 'OTE 79%'),
-    level(BSL,   '#34d399', 'BSL TARGET'),
-    zone(OTE_B, OTE_T, '#a78bfa', .20),
-    mark(6,  'above', 'SWING HIGH', '#34d399', 'circle'),
-    mark(15, 'below', 'DECISION', '#f59e0b'),
-  ]
-  return { candles, di: 15, before, after }
-}
-
-// ─── BOS RETEST ───────────────────────────────────────────────────────────────
-function bosRetest(): DC {
-  const BOS = 56; const OB_TOP = 60; const OB_BOT = 50; const SSL = 22
+// BEARISH FVG
+// BSL sweep → downtrend → C1/C2(bear disp)/C3 gap → pullback to FVG → decision → bear run
+function bearFVG(): DC {
+  const BSL=74, C1L=44, C3H=58, SSL=8
+  // C1 at idx 11, C2 at 12, C3 at 13
   const candles: CD[] = [
     // downtrend context
-    {o:72,h:74,l:70,c:71},{o:71,h:73,l:69,c:70},{o:70,h:72,l:68,c:69},
-    {o:69,h:71,l:67,c:68},{o:68,h:70,l:66,c:67},
-    // prior swing low = BOS level
-    {o:67,h:68,l:BOS,c:BOS+2},{o:BOS+2,h:BOS+4,l:BOS,c:BOS+3},
-    // BOS: big displacement candle breaks below BOS level
-    {o:BOS+3,h:BOS+4,l:34,c:36},
-    // OB = last candle before displacement (idx 6)
-    // drift lower
-    {o:36,h:38,l:32,c:34},{o:34,h:36,l:30,c:32},
-    // rally back to OB / BOS level
-    {o:32,h:36,l:30,c:36},{o:36,h:42,l:34,c:42},
-    {o:42,h:48,l:40,c:48},{o:48,h:54,l:46,c:53},
-    {o:53,h:57,l:51,c:56},{o:56,h:60,l:54,c:58},
-    // DECISION at OB
-    {o:58,h:OB_TOP,l:56,c:(OB_TOP+OB_BOT)/2|0},
+    {o:82,h:84,l:80,c:80}, {o:80,h:82,l:78,c:78}, {o:78,h:80,l:76,c:76}, {o:76,h:78,l:74,c:74},
+    // 3 equal highs at BSL=74 (wick tips all at 74)
+    {o:74,h:BSL,l:72,c:73}, {o:73,h:BSL,l:71,c:72}, {o:72,h:BSL,l:70,c:71},
+    // BSL SWEEP — big wick to 84, body stays below BSL
+    {o:71,h:84,l:69,c:71},
+    // recovery down
+    {o:71,h:73,l:67,c:67}, {o:67,h:69,l:63,c:63}, {o:63,h:65,l:59,c:59},
+    // C1: small bear, LOW wick = C1L (FVG top boundary)
+    {o:59,h:61,l:C1L,c:47},
+    // C2: MASSIVE bear displacement
+    {o:47,h:48,l:16,c:17},
+    // C3: small bear, HIGH wick = C3H (FVG bottom boundary)  C3H < C1L ✓
+    {o:17,h:C3H,l:14,c:16},
+    // pullback toward FVG
+    {o:16,h:22,l:14,c:22}, {o:22,h:29,l:20,c:29},
+    // DECISION: wick into FVG zone
+    {o:29,h:38,l:27,c:33},
     // after: bear continuation
-    {o:(OB_TOP+OB_BOT)/2|0,h:56,l:44,c:45},
-    {o:45,h:48,l:36,c:37},{o:37,h:40,l:SSL,c:SSL+2},
+    {o:33,h:35,l:22,c:22}, {o:22,h:24,l:12,c:12}, {o:12,h:14,l:SSL,c:SSL+2},
   ]
-  const before: Ann[] = [
-    level(BOS,    '#a78bfa', 'BOS Level', true),
-    zone(OB_BOT, OB_TOP, '#60a5fa', .12),
-  ]
-  const after: Ann[] = [
-    level(BOS,    '#a78bfa', 'BOS Level'),
-    level(OB_TOP, '#60a5fa', 'OB TOP'),
-    level(OB_BOT, '#60a5fa', 'OB BOT'),
-    level(SSL,    '#f87171', 'SSL TARGET'),
-    zone(OB_BOT, OB_TOP, '#60a5fa', .22),
-    mark(7,  'above', 'BOS', '#a78bfa'),
-    mark(6,  'above', 'OB', '#60a5fa', 'circle'),
-    mark(16, 'above', 'DECISION', '#f59e0b'),
-  ]
-  return { candles, di: 16, before, after }
+  const xL = cx(11) - BW
+  return {
+    candles, di: 16,
+    before: [
+      level(BSL, '#34d399', 'BSL'),
+      zone(C1L, C3H, '#f59e0b', .12, xL),
+    ],
+    after: [
+      level(BSL, '#34d399', 'BSL'),
+      level(C1L, '#f59e0b', 'FVG BOT'), level(C3H, '#f59e0b', 'FVG TOP'),
+      level(SSL, '#f87171', 'SSL TARGET'),
+      zone(C1L, C3H, '#f59e0b', .22, xL),
+      mark(7,'above','BSL SWEEP','#34d399'), mark(11,'above','C1','#94a3b8','circle'),
+      mark(12,'above','DISP','#f59e0b'), mark(13,'below','C3','#94a3b8','circle'),
+      mark(16,'below','DECISION','#f59e0b'),
+    ],
+  }
 }
 
-// ─── OB IN DISCOUNT ───────────────────────────────────────────────────────────
-function bullOBDiscount(): DC {
-  const SWH = 84; const EQUIL = 52; const OB_TOP = 44; const OB_BOT = 34; const BSL = 90
+// BEARISH OB — Judas spike sweeps BSL, last bull candle = OB, bear displacement, retrace to OB
+function bearOBJudas(): DC {
+  const BSL=76, OB_TOP=72, OB_BOT=62, SSL=20
+  // Judas spike at idx 7, OB at idx 8, displacement at idx 9
   const candles: CD[] = [
-    // establishes swing (1H style)
-    {o:28,h:32,l:26,c:32},{o:32,h:38,l:30,c:38},{o:38,h:46,l:36,c:46},
-    {o:46,h:56,l:44,c:56},{o:56,h:66,l:54,c:65},{o:65,h:SWH,l:63,c:SWH-1},
-    // pullback from high
-    {o:SWH-1,h:SWH,l:74,c:74},{o:74,h:76,l:66,c:67},{o:67,h:68,l:60,c:60},
-    {o:60,h:61,l:54,c:54},{o:54,h:55,l:48,c:49},{o:49,h:50,l:44,c:44},
-    // OB in discount (below equilibrium)
-    {o:44,h:OB_TOP,l:OB_BOT,c:OB_BOT+2},
-    // retrace to OB
-    {o:OB_BOT+2,h:OB_BOT+4,l:OB_BOT,c:OB_BOT+3},
+    // bearish context, downtrend
+    {o:70,h:72,l:68,c:68}, {o:68,h:70,l:66,c:66}, {o:66,h:68,l:64,c:64},
+    {o:64,h:66,l:62,c:62}, {o:62,h:64,l:60,c:60},
+    // slow grind up toward BSL (setting up the sweep)
+    {o:60,h:63,l:58,c:63}, {o:63,h:67,l:61,c:67},
+    // JUDAS: spike above BSL, wick to 82, closes below BSL
+    {o:67,h:82,l:65,c:68},
+    // OB = last bull close before displacement
+    {o:68,h:OB_TOP,l:66,c:OB_TOP-2},
+    // DISPLACEMENT: massive bear — violates OB immediately
+    {o:OB_TOP-2,h:OB_TOP,l:30,c:32},
+    // drift lower
+    {o:32,h:35,l:29,c:30}, {o:30,h:32,l:27,c:28},
+    // rally back up to OB zone
+    {o:28,h:33,l:26,c:33}, {o:33,h:40,l:31,c:40},
+    {o:40,h:48,l:38,c:48}, {o:48,h:56,l:46,c:56},
+    {o:56,h:63,l:54,c:62},
+    // DECISION at OB midpoint
+    {o:62,h:OB_TOP,l:60,c:(OB_TOP+OB_BOT)/2|0},
+    // after: bear continuation
+    {o:(OB_TOP+OB_BOT)/2|0,h:64,l:50,c:50}, {o:50,h:52,l:SSL,c:SSL+2},
+  ]
+  const xL = cx(8) - BW
+  return {
+    candles, di: 17,
+    before: [
+      level(BSL, '#34d399', 'BSL (Prior High)'),
+      zone(OB_BOT, OB_TOP, '#60a5fa', .14, xL),
+    ],
+    after: [
+      level(BSL,    '#34d399', 'BSL (Prior High)'),
+      level(OB_TOP, '#60a5fa', 'OB TOP'), level(OB_BOT, '#60a5fa', 'OB BOT'),
+      level(SSL,    '#f87171', 'SSL TARGET'),
+      zone(OB_BOT, OB_TOP, '#60a5fa', .25, xL),
+      mark(7,'above','JUDAS SPIKE','#a78bfa'), mark(8,'above','OB','#60a5fa','circle'),
+      mark(9,'above','DISPLACEMENT','#f87171'), mark(17,'above','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// SSL SWEEP — 3 equal lows → sweep wick → reversal with FVG → decision
+function sslSweep(): DC {
+  const SSL=32, FVG_TOP=60, FVG_BOT=48, BSL=88
+  // equal lows: idx 2,3,4 — sweep: idx 5 — FVG: 6/7/8 — di=12
+  const candles: CD[] = [
+    // context near SSL level
+    {o:44,h:46,l:40,c:45}, {o:45,h:47,l:42,c:46},
+    // 3 EXACT equal lows at SSL=32
+    {o:46,h:48,l:SSL,c:47}, {o:47,h:49,l:SSL,c:48}, {o:48,h:50,l:SSL,c:49},
+    // SSL SWEEP: huge wick to 18, body closes at 47 (well above SSL)
+    {o:49,h:50,l:18,c:47},
+    // reversal impulse: C1/C2/C3 creating bull FVG
+    {o:47,h:FVG_BOT,l:45,c:FVG_BOT-2},
+    {o:FVG_BOT-2,h:68,l:FVG_BOT-3,c:67},
+    {o:67,h:70,l:FVG_TOP,c:69},
+    // small pullback toward FVG
+    {o:69,h:70,l:62,c:63}, {o:63,h:65,l:60,c:61},
+    // DECISION: wick touches FVG, closes inside zone
+    {o:61,h:63,l:52,c:56},
+    // after: bull run to BSL
+    {o:56,h:65,l:54,c:65}, {o:65,h:76,l:63,c:76}, {o:76,h:BSL,l:74,c:BSL-1},
+  ]
+  const xL = cx(6) - BW
+  return {
+    candles, di: 11,
+    before: [
+      level(SSL, '#f87171', 'SSL (Equal Lows)'),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .12, xL),
+    ],
+    after: [
+      level(SSL,     '#f87171', 'SSL (Equal Lows)'),
+      level(FVG_TOP, '#f59e0b', 'FVG TOP'), level(FVG_BOT, '#f59e0b', 'FVG BOT'),
+      level(BSL,     '#34d399', 'BSL TARGET'),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .22, xL),
+      mark(5,'below','SSL SWEEP','#f87171'), mark(6,'below','C1','#94a3b8','circle'),
+      mark(7,'below','DISP','#f59e0b'), mark(8,'above','C3','#94a3b8','circle'),
+      mark(11,'above','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// BSL SWEEP — 3 equal highs → sweep wick → bearish FVG → decision
+function bslSweep(): DC {
+  const BSL=70, FVG_BOT=44, FVG_TOP=56, SSL=14
+  const candles: CD[] = [
+    {o:58,h:60,l:56,c:59}, {o:59,h:61,l:57,c:60},
+    // 3 EXACT equal highs at BSL=70
+    {o:60,h:BSL,l:58,c:61}, {o:61,h:BSL,l:59,c:62}, {o:62,h:BSL,l:60,c:63},
+    // BSL SWEEP: big wick to 82, closes at 60 (below BSL)
+    {o:63,h:82,l:61,c:60},
+    // bearish impulse: C1/C2/C3 creating bear FVG
+    {o:60,h:62,l:FVG_TOP,c:FVG_TOP+2},
+    {o:FVG_TOP+2,h:FVG_TOP+3,l:34,c:35},
+    {o:35,h:FVG_BOT,l:32,c:34},
+    // pullback up toward FVG
+    {o:34,h:41,l:32,c:40}, {o:40,h:47,l:38,c:46},
+    // DECISION: wick up into FVG, closes inside
+    {o:46,h:54,l:44,c:49},
+    // after: bear run
+    {o:49,h:51,l:37,c:37}, {o:37,h:39,l:SSL,c:SSL+2},
+  ]
+  const xL = cx(6) - BW
+  return {
+    candles, di: 11,
+    before: [
+      level(BSL, '#34d399', 'BSL (Equal Highs)'),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .12, xL),
+    ],
+    after: [
+      level(BSL,     '#34d399', 'BSL (Equal Highs)'),
+      level(FVG_TOP, '#f59e0b', 'FVG TOP'), level(FVG_BOT, '#f59e0b', 'FVG BOT'),
+      level(SSL,     '#f87171', 'SSL TARGET'),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .22, xL),
+      mark(5,'above','BSL SWEEP','#34d399'), mark(6,'above','C1','#94a3b8','circle'),
+      mark(7,'above','DISP','#f59e0b'), mark(8,'below','C3','#94a3b8','circle'),
+      mark(11,'below','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// CHoCH BULLISH — bearish downtrend → SSL sweep → close above last LH = CHoCH → FVG → long
+function chochBull(): DC {
+  // Lower highs: LH1=72, LH2=65, LH3=58 (CHoCH level)
+  // Lower lows:  LL1=48, LL2=40, SSL=32
+  const CHOCH=58, SSL=32, FVG_BOT=62, FVG_TOP=72, BSL=90
+  const candles: CD[] = [
+    // bearish swing 1: LH1→LL1
+    {o:74,h:76,l:72,c:72},  // near top
+    {o:72,h:74,l:68,c:69},  // down
+    {o:69,h:71,l:64,c:65},  // down
+    {o:65,h:67,l:48,c:49},  // big bear: makes LL1=48
+    // bearish swing 2: rallies to LH2=65 (lower than LH1)
+    {o:49,h:65,l:47,c:64},  // rally to LH2
+    // bearish swing 3: drops to LL2=40
+    {o:64,h:65,l:56,c:57},
+    {o:57,h:59,l:40,c:41},  // makes LL2=40
+    // consolidate near SSL=32
+    {o:41,h:43,l:36,c:42},
+    {o:42,h:44,l:SSL,c:43}, {o:43,h:45,l:SSL,c:44},
+    // SSL SWEEP: wick to 22, closes at 42
+    {o:44,h:45,l:22,c:42},
+    // rally: CHoCH bar closes ABOVE CHOCH=58
+    {o:42,h:50,l:40,c:50}, {o:50,h:61,l:48,c:61},
+    // CHoCH BREAK: closes at 63 — above CHOCH=58 ✓
+    {o:61,h:66,l:59,c:65},
+    // FVG from CHoCH impulse: C1/C2/C3
+    {o:65,h:FVG_BOT,l:63,c:FVG_BOT-1},
+    {o:FVG_BOT-1,h:80,l:FVG_BOT-2,c:79},
+    {o:79,h:82,l:FVG_TOP,c:81},
+    // retrace to FVG
+    {o:81,h:82,l:74,c:75},
+    // DECISION at FVG
+    {o:75,h:76,l:66,c:70},
+    // after: bull to BSL
+    {o:70,h:80,l:68,c:80}, {o:80,h:BSL,l:78,c:BSL-1},
+  ]
+  const xL = cx(14) - BW
+  return {
+    candles, di: 18,
+    before: [
+      level(SSL,   '#f87171', 'SSL'),
+      level(CHOCH, '#34d399', 'CHoCH Level'),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .10, xL),
+    ],
+    after: [
+      level(SSL,     '#f87171', 'SSL'),
+      level(CHOCH,   '#34d399', 'CHoCH Level'),
+      level(FVG_TOP, '#f59e0b', 'FVG TOP'), level(FVG_BOT, '#f59e0b', 'FVG BOT'),
+      level(BSL,     '#34d399', 'BSL TARGET'),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .22, xL),
+      mark(10,'below','SSL SWEEP','#f87171'),
+      mark(13,'below','CHoCH BREAK','#34d399'),
+      mark(18,'above','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// AMD BULLISH — Asia range (accumulation) → manipulation drop → distribution up
+function amdBull(): DC {
+  const AL=38, AH=58, FVG_BOT=65, FVG_TOP=76, BSL=94
+  const candles: CD[] = [
+    // ACCUMULATION: 8 bars tight in Asia range
+    {o:46,h:AH,l:AL,c:48}, {o:48,h:AH,l:AL,c:50}, {o:50,h:AH,l:AL,c:48},
+    {o:48,h:AH,l:AL,c:46}, {o:46,h:AH,l:AL,c:48}, {o:48,h:AH,l:AL,c:50},
+    {o:50,h:AH,l:AL,c:52}, {o:52,h:AH,l:AL,c:50},
+    // MANIPULATION: spike BELOW Asia low (SSL sweep)
+    {o:50,h:51,l:24,c:48},
+    // recovery back above Asia low
+    {o:48,h:54,l:46,c:54}, {o:54,h:60,l:52,c:60},
+    // DISTRIBUTION: bull FVG created
+    {o:60,h:FVG_BOT,l:58,c:FVG_BOT-1},
+    {o:FVG_BOT-1,h:82,l:FVG_BOT-2,c:81},
+    {o:81,h:83,l:FVG_TOP,c:82},
+    // retrace to FVG
+    {o:82,h:83,l:77,c:78}, {o:78,h:80,l:76,c:77},
     // DECISION
+    {o:77,h:78,l:69,c:73},
+    // after: bull to BSL
+    {o:73,h:82,l:71,c:82}, {o:82,h:BSL,l:80,c:BSL-1},
+  ]
+  const xL = cx(11) - BW
+  return {
+    candles, di: 16,
+    before: [
+      level(AL, '#f87171', 'Asia Low (SSL)', true),
+      level(AH, '#34d399', 'Asia High (BSL)', true),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .10, xL),
+    ],
+    after: [
+      level(AL,      '#f87171', 'Asia Low (SSL)'),
+      level(AH,      '#34d399', 'Asia High'),
+      level(FVG_TOP, '#f59e0b', 'FVG TOP'), level(FVG_BOT, '#f59e0b', 'FVG BOT'),
+      level(BSL,     '#34d399', 'BSL TARGET'),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .22, xL),
+      mark(0,'above','ACCUMULATION','#94a3b8','circle'),
+      mark(8,'below','MANIPULATION','#a78bfa'),
+      mark(10,'below','DISTRIBUTION','#34d399','circle'),
+      mark(16,'above','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// AMD BEARISH — accumulation → judas spike UP → distribution down
+function amdBear(): DC {
+  const AL=44, AH=62, FVG_TOP=38, FVG_BOT=26, SSL=10
+  const candles: CD[] = [
+    {o:50,h:AH,l:AL,c:52}, {o:52,h:AH,l:AL,c:50}, {o:50,h:AH,l:AL,c:48},
+    {o:48,h:AH,l:AL,c:50}, {o:50,h:AH,l:AL,c:52}, {o:52,h:AH,l:AL,c:54},
+    {o:54,h:AH,l:AL,c:52}, {o:52,h:AH,l:AL,c:50},
+    // MANIPULATION: spike ABOVE Asia high (BSL sweep)
+    {o:50,h:78,l:48,c:50},
+    // recovery down
+    {o:50,h:52,l:44,c:44}, {o:44,h:46,l:38,c:38},
+    // DISTRIBUTION: bear FVG
+    {o:38,h:40,l:FVG_BOT,c:28},
+    {o:28,h:30,l:18,c:19},
+    {o:19,h:FVG_TOP,l:16,c:18},
+    // pullback to FVG
+    {o:18,h:25,l:16,c:25}, {o:25,h:32,l:23,c:31},
+    // DECISION
+    {o:31,h:36,l:29,c:33},
+    // after
+    {o:33,h:35,l:22,c:22}, {o:22,h:24,l:SSL,c:SSL+2},
+  ]
+  const xL = cx(11) - BW
+  return {
+    candles, di: 16,
+    before: [
+      level(AH, '#34d399', 'Asia High (BSL)', true),
+      level(AL, '#f87171', 'Asia Low', true),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .10, xL),
+    ],
+    after: [
+      level(AH,      '#34d399', 'Asia High (BSL)'),
+      level(AL,      '#f87171', 'Asia Low'),
+      level(FVG_TOP, '#f59e0b', 'FVG TOP'), level(FVG_BOT, '#f59e0b', 'FVG BOT'),
+      level(SSL,     '#f87171', 'SSL TARGET'),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .22, xL),
+      mark(0,'above','ACCUMULATION','#94a3b8','circle'),
+      mark(8,'above','MANIPULATION','#a78bfa'),
+      mark(10,'above','DISTRIBUTION','#f87171','circle'),
+      mark(16,'below','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// JUDAS SHORT — NY open spike runs BSL → bearish OB/FVG → decision to short
+function judasShort(): DC {
+  const BSL=74, OB_TOP=70, OB_BOT=60, SSL=22
+  const candles: CD[] = [
+    // bearish context
+    {o:66,h:68,l:64,c:64}, {o:64,h:66,l:62,c:62}, {o:62,h:64,l:60,c:60},
+    // prior high visible
+    {o:60,h:62,l:58,c:61}, {o:61,h:63,l:59,c:62},
+    // JUDAS: open and spike straight to BSL (NY open)
+    {o:62,h:BSL,l:60,c:68},
+    // OB = last bull candle (high = OB_TOP)
+    {o:68,h:OB_TOP,l:66,c:OB_TOP-2},
+    // DISPLACEMENT: massive bear, blows through OB
+    {o:OB_TOP-2,h:OB_TOP-1,l:30,c:32},
+    // drift lower
+    {o:32,h:35,l:28,c:30}, {o:30,h:32,l:26,c:28},
+    // rally back to OB
+    {o:28,h:34,l:26,c:34}, {o:34,h:42,l:32,c:42},
+    {o:42,h:50,l:40,c:50}, {o:50,h:58,l:48,c:57},
+    {o:57,h:63,l:55,c:62},
+    // DECISION at OB midpoint
+    {o:62,h:OB_TOP,l:60,c:(OB_TOP+OB_BOT)/2|0},
+    // after: bear continuation
+    {o:(OB_TOP+OB_BOT)/2|0,h:64,l:48,c:48}, {o:48,h:50,l:SSL,c:SSL+2},
+  ]
+  const xL = cx(6) - BW
+  return {
+    candles, di: 15,
+    before: [
+      level(BSL,    '#34d399', 'Prior Day High'),
+      zone(OB_BOT, OB_TOP, '#60a5fa', .14, xL),
+    ],
+    after: [
+      level(BSL,    '#34d399', 'BSL (Prior High)'),
+      level(OB_TOP, '#60a5fa', 'OB TOP'), level(OB_BOT, '#60a5fa', 'OB BOT'),
+      level(SSL,    '#f87171', 'SSL TARGET'),
+      zone(OB_BOT, OB_TOP, '#60a5fa', .26, xL),
+      mark(5,'above','JUDAS SPIKE','#a78bfa'), mark(6,'above','OB','#60a5fa','circle'),
+      mark(7,'above','DISPLACEMENT','#f87171'), mark(15,'above','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// SILVER BULLET LONG — 10am window, SSL sweep → 1m FVG → long
+function silverBulletLong(): DC {
+  const SSL=40, FVG_TOP=62, FVG_BOT=50, BSL=82
+  const candles: CD[] = [
+    // choppy 1m context
+    {o:54,h:56,l:52,c:55},{o:55,h:57,l:53,c:54},{o:54,h:55,l:51,c:52},
+    {o:52,h:53,l:49,c:50},{o:50,h:52,l:SSL+2,c:51},{o:51,h:53,l:SSL,c:52},{o:52,h:54,l:SSL,c:53},
+    // SSL SWEEP: huge wick, closes at 50
+    {o:53,h:54,l:28,c:50},
+    // 1m FVG: C1/C2/C3
+    {o:50,h:FVG_BOT,l:48,c:FVG_BOT-1},
+    {o:FVG_BOT-1,h:70,l:FVG_BOT-2,c:69},
+    {o:69,h:71,l:FVG_TOP,c:70},
+    // retrace
+    {o:70,h:71,l:64,c:65}, {o:65,h:67,l:62,c:63},
+    // DECISION
+    {o:63,h:64,l:54,c:58},
+    // after
+    {o:58,h:68,l:56,c:68}, {o:68,h:BSL,l:66,c:BSL-1},
+  ]
+  const xL = cx(8) - BW
+  return {
+    candles, di: 13,
+    before: [
+      level(SSL, '#f87171', 'SSL'),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .12, xL),
+    ],
+    after: [
+      level(SSL,     '#f87171', 'SSL'),
+      level(FVG_TOP, '#f59e0b', 'FVG TOP'), level(FVG_BOT, '#f59e0b', 'FVG BOT'),
+      level(BSL,     '#34d399', 'BSL TARGET'),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .22, xL),
+      mark(7,'below','SSL SWEEP','#f87171'), mark(8,'below','C1','#94a3b8','circle'),
+      mark(9,'below','DISP','#f59e0b'), mark(10,'above','C3','#94a3b8','circle'),
+      mark(13,'above','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// SILVER BULLET SHORT — 2pm window, BSL sweep → 1m bearish FVG → short
+function silverBulletShort(): DC {
+  const BSL=64, FVG_BOT=44, FVG_TOP=54, SSL=24
+  const candles: CD[] = [
+    {o:54,h:56,l:52,c:55},{o:55,h:57,l:53,c:56},{o:56,h:58,l:54,c:57},
+    {o:57,h:59,l:55,c:58},{o:58,h:BSL,l:56,c:59},{o:59,h:BSL,l:57,c:60},{o:60,h:BSL,l:58,c:61},
+    // BSL SWEEP: wick to 74, closes at 58
+    {o:61,h:74,l:59,c:58},
+    // 1m bearish FVG: C1/C2/C3
+    {o:58,h:60,l:FVG_TOP,c:FVG_TOP+2},
+    {o:FVG_TOP+2,h:FVG_TOP+3,l:34,c:35},
+    {o:35,h:FVG_BOT,l:32,c:34},
+    // pullback
+    {o:34,h:41,l:32,c:40}, {o:40,h:47,l:38,c:46},
+    // DECISION
+    {o:46,h:52,l:44,c:48},
+    // after
+    {o:48,h:50,l:34,c:34}, {o:34,h:36,l:SSL,c:SSL+2},
+  ]
+  const xL = cx(8) - BW
+  return {
+    candles, di: 13,
+    before: [
+      level(BSL, '#34d399', 'BSL'),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .12, xL),
+    ],
+    after: [
+      level(BSL,     '#34d399', 'BSL'),
+      level(FVG_TOP, '#f59e0b', 'FVG TOP'), level(FVG_BOT, '#f59e0b', 'FVG BOT'),
+      level(SSL,     '#f87171', 'SSL TARGET'),
+      zone(FVG_BOT, FVG_TOP, '#f59e0b', .22, xL),
+      mark(7,'above','BSL SWEEP','#34d399'), mark(8,'above','C1','#94a3b8','circle'),
+      mark(9,'above','DISP','#f59e0b'), mark(10,'below','C3','#94a3b8','circle'),
+      mark(13,'below','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// BREAKER BEAR — bull OB holds → price closes below OB → rally retests OB (now bearish breaker)
+function breakerBear(): DC {
+  const OB_TOP=70, OB_BOT=60, SSL=20
+  const candles: CD[] = [
+    // OB works initially
+    {o:54,h:57,l:52,c:57},{o:57,h:62,l:55,c:62},{o:62,h:OB_BOT,l:60,c:OB_TOP-2},
+    // OB candle itself
+    {o:OB_TOP-2,h:OB_TOP+2,l:OB_BOT,c:OB_TOP+1},
+    // big rally after OB (price respected it)
+    {o:OB_TOP+1,h:OB_TOP+8,l:OB_TOP-1,c:OB_TOP+7},
+    // OB VIOLATION: big bear closes below OB_BOT
+    {o:OB_TOP+7,h:OB_TOP+8,l:42,c:44},
+    {o:44,h:47,l:38,c:40}, {o:40,h:43,l:34,c:36},
+    // rally back toward the BREAKER (former OB)
+    {o:36,h:41,l:34,c:41}, {o:41,h:48,l:39,c:48},
+    {o:48,h:55,l:46,c:55}, {o:55,h:61,l:53,c:60},
+    {o:60,h:65,l:58,c:64},
+    // DECISION: price tests former OB zone (now resistance)
+    {o:64,h:OB_TOP,l:62,c:(OB_TOP+OB_BOT)/2|0},
+    // after: bear continuation from breaker
+    {o:(OB_TOP+OB_BOT)/2|0,h:66,l:48,c:48}, {o:48,h:50,l:SSL,c:SSL+2},
+  ]
+  const xL = cx(3) - BW
+  return {
+    candles, di: 13,
+    before: [
+      zone(OB_BOT, OB_TOP, '#60a5fa', .14, xL),
+    ],
+    after: [
+      level(OB_TOP, '#60a5fa', 'BREAKER TOP'), level(OB_BOT, '#60a5fa', 'BREAKER BOT'),
+      level(SSL,    '#f87171', 'SSL TARGET'),
+      zone(OB_BOT, OB_TOP, '#60a5fa', .26, xL),
+      mark(3,'below','OB (was support)','#60a5fa','circle'),
+      mark(5,'above','OB VIOLATED','#f87171'),
+      mark(13,'above','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// BREAKER BULL — bear OB holds → price closes above OB → pullback retests OB (now bullish breaker)
+function breakerBull(): DC {
+  const OB_TOP=46, OB_BOT=36, BSL=84
+  const candles: CD[] = [
+    {o:54,h:56,l:52,c:52},{o:52,h:54,l:50,c:50},{o:50,h:52,l:OB_TOP,c:OB_TOP-2},
+    // OB candle
+    {o:OB_TOP-2,h:OB_TOP+2,l:OB_BOT,c:OB_BOT+1},
+    // drop continues initially
+    {o:OB_BOT+1,h:OB_TOP-2,l:28,c:30},
+    // OB VIOLATION: big bull closes above OB_TOP
+    {o:30,h:56,l:28,c:55},
+    {o:55,h:62,l:53,c:62},{o:62,h:70,l:60,c:70},
+    // pullback toward breaker zone
+    {o:70,h:72,l:62,c:62},{o:62,h:64,l:54,c:54},
+    {o:54,h:56,l:46,c:47},{o:47,h:50,l:42,c:43},
+    // DECISION: tests former bear OB (now bullish breaker)
+    {o:43,h:OB_TOP+1,l:41,c:(OB_TOP+OB_BOT)/2|0},
+    // after: bull run
+    {o:(OB_TOP+OB_BOT)/2|0,h:52,l:40,c:52},{o:52,h:62,l:50,c:62},
+    {o:62,h:74,l:60,c:74},{o:74,h:BSL,l:72,c:BSL-1},
+  ]
+  const xL = cx(3) - BW
+  return {
+    candles, di: 12,
+    before: [
+      zone(OB_BOT, OB_TOP, '#60a5fa', .14, xL),
+    ],
+    after: [
+      level(OB_TOP, '#60a5fa', 'BREAKER TOP'), level(OB_BOT, '#60a5fa', 'BREAKER BOT'),
+      level(BSL,    '#34d399', 'BSL TARGET'),
+      zone(OB_BOT, OB_TOP, '#60a5fa', .26, xL),
+      mark(3,'above','OB (was resist)','#60a5fa','circle'),
+      mark(5,'below','OB VIOLATED','#34d399'),
+      mark(12,'below','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// OTE — swing low → swing high → 62-79% retracement zone → FVG inside → long
+function oteZone(): DC {
+  const SWL=20, SWH=80, OTE_T=55, OTE_B=43, EQUIL=50, BSL=92
+  const candles: CD[] = [
+    // swing low established
+    {o:22,h:24,l:SWL,c:24},
+    // impulse up (establishes swing)
+    {o:24,h:32,l:22,c:32},{o:32,h:42,l:30,c:42},{o:42,h:54,l:40,c:54},
+    {o:54,h:64,l:52,c:64},{o:64,h:74,l:62,c:74},{o:74,h:SWH,l:72,c:SWH-1},
+    // retracement into OTE zone (62-79% of 60 range = pulls back 37-47 pts)
+    {o:SWH-1,h:SWH,l:72,c:73},{o:73,h:75,l:69,c:70},{o:70,h:72,l:66,c:67},
+    {o:67,h:69,l:63,c:64},{o:64,h:66,l:60,c:61},{o:61,h:63,l:57,c:58},
+    {o:58,h:60,l:OTE_T+2,c:OTE_T},
+    // in OTE zone
+    {o:OTE_T,h:OTE_T+2,l:OTE_B+1,c:OTE_B+2},
+    // DECISION at zone
+    {o:OTE_B+2,h:OTE_T+2,l:OTE_B,c:OTE_B+4},
+    // after: bull to BSL
+    {o:OTE_B+4,h:60,l:OTE_B+2,c:60},{o:60,h:70,l:58,c:70},
+    {o:70,h:80,l:68,c:80},{o:80,h:BSL,l:78,c:BSL-1},
+  ]
+  const xL = cx(13) - BW
+  return {
+    candles, di: 15,
+    before: [
+      level(SWH,  '#34d399', 'Swing High', false),
+      level(EQUIL,'#64748b', 'Equilibrium (50%)'),
+      level(OTE_T,'#a78bfa', 'OTE 62%'), level(OTE_B,'#a78bfa', 'OTE 79%'),
+      zone(OTE_B, OTE_T, '#a78bfa', .14, xL),
+    ],
+    after: [
+      level(SWH,  '#34d399', 'Swing High', false),
+      level(EQUIL,'#64748b', 'Equilibrium'),
+      level(OTE_T,'#a78bfa', 'OTE 62%'), level(OTE_B,'#a78bfa', 'OTE 79%'),
+      level(BSL,  '#34d399', 'BSL TARGET'),
+      zone(OTE_B, OTE_T, '#a78bfa', .22, xL),
+      mark(6,'above','SWING HIGH','#34d399','circle'), mark(15,'below','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// BOS RETEST — prior swing low → BOS displacement → OB → rally to OB → short
+function bosRetest(): DC {
+  const BOS=56, OB_TOP=62, OB_BOT=50, SSL=20
+  const candles: CD[] = [
+    {o:74,h:76,l:72,c:72},{o:72,h:74,l:70,c:70},{o:70,h:72,l:68,c:68},{o:68,h:70,l:66,c:66},
+    // equal lows forming at BOS=56
+    {o:66,h:68,l:BOS,c:66},{o:66,h:68,l:BOS,c:67},
+    // OB = last candle before BOS displacement
+    {o:67,h:OB_TOP,l:OB_BOT,c:OB_BOT+2},
+    // BOS: massive bear breaks below BOS level
+    {o:OB_BOT+2,h:OB_BOT+4,l:32,c:34},
+    // drift lower
+    {o:34,h:37,l:30,c:32},{o:32,h:35,l:28,c:30},
+    // rally back to OB/BOS
+    {o:30,h:36,l:28,c:36},{o:36,h:44,l:34,c:44},{o:44,h:52,l:42,c:52},{o:52,h:58,l:50,c:57},
+    // DECISION at OB
+    {o:57,h:OB_TOP,l:55,c:(OB_TOP+OB_BOT)/2|0},
+    // after: bear
+    {o:(OB_TOP+OB_BOT)/2|0,h:58,l:42,c:42},{o:42,h:44,l:SSL,c:SSL+2},
+  ]
+  const xL = cx(6) - BW
+  return {
+    candles, di: 14,
+    before: [
+      level(BOS,    '#a78bfa', 'BOS Level'),
+      zone(OB_BOT, OB_TOP, '#60a5fa', .14, xL),
+    ],
+    after: [
+      level(BOS,    '#a78bfa', 'BOS Level'),
+      level(OB_TOP, '#60a5fa', 'OB TOP'), level(OB_BOT, '#60a5fa', 'OB BOT'),
+      level(SSL,    '#f87171', 'SSL TARGET'),
+      zone(OB_BOT, OB_TOP, '#60a5fa', .26, xL),
+      mark(6,'above','OB','#60a5fa','circle'), mark(7,'above','BOS','#a78bfa'),
+      mark(14,'above','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// OB IN DISCOUNT — swing range with P/D zones; OB sits below 50% → long
+function bullOBDiscount(): DC {
+  const SWL=18, SWH=82, EQUIL=50, OB_TOP=44, OB_BOT=34, BSL=90
+  const candles: CD[] = [
+    // swing established
+    {o:20,h:24,l:SWL,c:24},{o:24,h:34,l:22,c:34},{o:34,h:46,l:32,c:46},
+    {o:46,h:58,l:44,c:58},{o:58,h:70,l:56,c:70},{o:70,h:SWH,l:68,c:SWH-1},
+    // pullback from high into discount
+    {o:SWH-1,h:SWH,l:74,c:74},{o:74,h:76,l:66,c:66},
+    {o:66,h:68,l:58,c:58},{o:58,h:60,l:50,c:51},{o:51,h:53,l:44,c:44},
+    // OB in discount (below equil=50)
+    {o:44,h:OB_TOP+1,l:OB_BOT-1,c:OB_BOT+2},
+    // settle near OB
+    {o:OB_BOT+2,h:OB_BOT+5,l:OB_BOT,c:OB_BOT+3},
+    // DECISION at OB
     {o:OB_BOT+3,h:OB_TOP,l:OB_BOT-1,c:(OB_TOP+OB_BOT)/2|0},
-    // after: bull
-    {o:(OB_TOP+OB_BOT)/2|0,h:50,l:38,c:50},{o:50,h:60,l:48,c:60},
-    {o:60,h:70,l:58,c:70},{o:70,h:80,l:68,c:80},{o:80,h:BSL,l:78,c:BSL-1},
+    // after: bull to premium/BSL
+    {o:(OB_TOP+OB_BOT)/2|0,h:52,l:38,c:52},{o:52,h:64,l:50,c:64},
+    {o:64,h:76,l:62,c:76},{o:76,h:BSL,l:74,c:BSL-1},
   ]
-  const before: Ann[] = [
-    level(SWH,   '#34d399', 'Swing High', false),
-    level(EQUIL, '#64748b', 'Equilibrium 50%', true),
-    zone(OB_BOT, OB_TOP, '#60a5fa', .14),
-  ]
-  const after: Ann[] = [
-    level(SWH,   '#34d399', 'Swing High (BSL)', false),
-    level(EQUIL, '#64748b', 'Equilibrium (50%)'),
-    level(OB_TOP, '#60a5fa', 'OB TOP (Discount)'),
-    level(OB_BOT, '#60a5fa', 'OB BOT'),
-    level(BSL,   '#34d399', 'BSL TARGET'),
-    zone(OB_BOT, OB_TOP, '#60a5fa', .22),
-    mark(12, 'above', 'OB in DISCOUNT', '#60a5fa', 'circle'),
-    mark(14, 'below', 'DECISION', '#f59e0b'),
-  ]
-  return { candles, di: 14, before, after }
+  const xL = cx(11) - BW
+  return {
+    candles, di: 13,
+    before: [
+      level(SWH,  '#34d399', 'Swing High', false),
+      level(EQUIL,'#64748b', 'Equilibrium'),
+      zone(OB_BOT, OB_TOP, '#60a5fa', .14, xL),
+    ],
+    after: [
+      level(SWH,   '#34d399', 'Swing High (BSL)', false),
+      level(EQUIL, '#64748b', 'Equilibrium (50%)'),
+      level(OB_TOP,'#60a5fa', 'OB TOP (Discount)'), level(OB_BOT,'#60a5fa', 'OB BOT'),
+      level(BSL,   '#34d399', 'BSL TARGET'),
+      zone(OB_BOT, OB_TOP, '#60a5fa', .26, xL),
+      mark(11,'above','OB in Discount','#60a5fa','circle'), mark(13,'below','DECISION','#f59e0b'),
+    ],
+  }
 }
 
-// ─── NO SETUP (FOMC / choppy) ─────────────────────────────────────────────────
+// NO SETUP — choppy, equal highs AND lows, FOMC-style
 function noSetup(): DC {
-  const EQL = 62; const EQH = 72; const MID = 67
-  // seeded pseudo-random for consistent but organic-looking chop
-  const rng = (() => { let s=42; return () => { s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff } })()
-  const candles: CD[] = Array.from({length:22}, (_) => {
-    const o = MID + (rng()-0.5)*8
-    const c = MID + (rng()-0.5)*8
-    const h = Math.min(Math.max(o,c) + rng()*5, EQH+3)
-    const l = Math.max(Math.min(o,c) - rng()*5, EQL-3)
-    return {o,h,l,c}
+  const EQH=70, EQL=52, MID=61
+  let s=777
+  const rng = () => { s=(s*1103515245+12345)>>>0; return s/0x100000000 }
+  const candles: CD[] = Array.from({length:19}, () => {
+    const o=MID+(rng()-.5)*10, c=MID+(rng()-.5)*10
+    return { o, c, h:Math.min(Math.max(o,c)+rng()*5,EQH+3), l:Math.max(Math.min(o,c)-rng()*5,EQL-3) }
   })
-  const before: Ann[] = [
-    level(EQH, '#34d399', 'Equal Highs (BSL)', true),
-    level(EQL, '#f87171', 'Equal Lows (SSL)', true),
-  ]
-  const after: Ann[] = [
-    level(EQH, '#34d399', 'Equal Highs (BSL)'),
-    level(EQL, '#f87171', 'Equal Lows (SSL)'),
-    mark(21, 'above', 'NO CLEAR SETUP', '#64748b', 'circle'),
-  ]
-  return { candles, di: 21, before, after }
+  return {
+    candles, di: 18,
+    before: [
+      level(EQH,'#34d399','Equal Highs (BSL)'), level(EQL,'#f87171','Equal Lows (SSL)'),
+    ],
+    after: [
+      level(EQH,'#34d399','Equal Highs (BSL)'), level(EQL,'#f87171','Equal Lows (SSL)'),
+      mark(18,'above','NO CLEAR SETUP','#64748b','circle'),
+    ],
+  }
 }
 
-// ── Scenario → diagram mapping ────────────────────────────────────────────────
+// ── Scenario map ──────────────────────────────────────────────────────────────
 function getDiagram(s: Scenario): DC {
   switch (s.id) {
     case 's01': return bullFVG()
@@ -837,25 +819,25 @@ function getDiagram(s: Scenario): DC {
     case 's05': return chochBull()
     case 's06': return amdBull()
     case 's07': return judasShort()
-    case 's08': return silverBullet('long')
-    case 's09': return breaker('bear')
+    case 's08': return silverBulletLong()
+    case 's09': return breakerBear()
     case 's10': return bullOBDiscount()
     case 's11': return noSetup()
     case 's12': return bearFVG()
     case 's13': return oteZone()
     case 's14': return bslSweep()
-    case 's15': return silverBullet('short')
+    case 's15': return silverBulletShort()
     case 's16': return bosRetest()
     case 's17': return bslSweep()
     case 's18': return amdBull()
     case 's19': return amdBear()
-    case 's20': return silverBullet('short')
+    case 's20': return silverBulletShort()
     case 's21': return bslSweep()
     case 's22': return bullFVG()
     case 's23': return sslSweep()
-    case 's24': return breaker('bull')
+    case 's24': return breakerBull()
     case 's25': return chochBull()
-    case 's26': return silverBullet('long')
+    case 's26': return silverBulletLong()
     case 's27': return bullFVG()
     case 's28': return bullFVG()
     case 's29': return sslSweep()
@@ -864,33 +846,23 @@ function getDiagram(s: Scenario): DC {
   }
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-interface Props { mode: 'before' | 'after'; scenario: Scenario }
-
-export function ConceptDiagram({ mode, scenario }: Props) {
+// ── Component ─────────────────────────────────────────────────────────────────
+export function ConceptDiagram({ mode, scenario }: { mode: 'before'|'after'; scenario: Scenario }) {
   const { candles, di, before, after } = useMemo(() => getDiagram(scenario), [scenario.id])
-
-  const showCount    = mode === 'before' ? di + 1 : candles.length
-  const visCandles   = candles.slice(0, showCount)
-  const annots       = mode === 'before' ? before : after
-
-  const zones  = annots.filter(a => a.k === 'zone')  as Extract<Ann,{k:'zone'}>[]
-  const levels = annots.filter(a => a.k === 'level') as Extract<Ann,{k:'level'}>[]
-  const marks  = annots.filter(a => a.k === 'mark')  as Extract<Ann,{k:'mark'}>[]
+  const showN  = mode === 'before' ? di + 1 : candles.length
+  const annots = mode === 'before' ? before : after
 
   return (
     <div className="rounded-2xl border border-slate-800/50 overflow-hidden relative"
-         style={{ background: '#06060e', height: 360 }}>
+         style={{ background:'#06060e', height:360 }}>
 
-      {/* Info bar */}
       <div className="absolute top-3 left-4 z-10 flex items-center gap-2">
-        <span className="text-[10px] font-bold text-slate-500" style={{ fontFamily: 'monospace' }}>
+        <span className="text-[10px] font-bold text-slate-500" style={{fontFamily:'monospace'}}>
           {scenario.instrument}
         </span>
         <span className="text-[9px] text-slate-700">{scenario.timeframe}</span>
       </div>
 
-      {/* Badge */}
       {mode === 'before' && (
         <div className="absolute bottom-3 right-4 z-10">
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 animate-pulse">
@@ -907,41 +879,36 @@ export function ConceptDiagram({ mode, scenario }: Props) {
         </div>
       )}
 
-      {/* SVG */}
       <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet"
-           style={{ width: '100%', height: '100%' }}>
+           style={{width:'100%', height:'100%'}}>
         <defs><style>{CSS}</style></defs>
-
-        {/* Background */}
         <rect width={VW} height={VH} fill="#06060e" />
 
-        {/* Grid lines */}
-        {[25, 50, 75].map(p => (
-          <line key={p} x1={2} y1={py(p)} x2={CR - 2} y2={py(p)}
-            stroke="#1e293b" strokeWidth={1} />
+        {/* subtle grid */}
+        {[25,50,75].map(p => (
+          <line key={p} x1={2} y1={py(p)} x2={CR-2} y2={py(p)} stroke="#1e293b" strokeWidth={1} />
         ))}
 
-        {/* Zones (behind candles) */}
-        {zones.map((a, i) => <ZoneEl key={i} a={a} />)}
+        {/* zones (behind candles) */}
+        {(annots.filter(a => a.k==='zone') as Extract<Ann,{k:'zone'}>[]).map((a,i) =>
+          <ZoneEl key={i} a={a} />
+        )}
 
-        {/* Candles */}
-        {visCandles.map((d, i) => (
-          <Candle key={i} i={i} d={d} delay={i * 0.018} />
-        ))}
+        {/* candles */}
+        {candles.slice(0,showN).map((d,i) => <Candle key={i} i={i} d={d} del={i*.018} />)}
 
-        {/* Decision pulse (before mode only) */}
-        {mode === 'before' && <DecisionPulse di={di} candles={candles} />}
+        {/* decision pulse */}
+        {mode === 'before' && <DecisionPulse di={di} cs={candles} />}
 
-        {/* Level lines */}
-        {levels.map((a, i) => (
-          <LevelEl key={i} a={a} delay={mode === 'after' ? i * 0.07 : 0} />
-        ))}
+        {/* levels */}
+        {(annots.filter(a => a.k==='level') as Extract<Ann,{k:'level'}>[]).map((a,i) =>
+          <LevelEl key={i} a={a} del={mode==='after' ? i*.07 : 0} />
+        )}
 
-        {/* Marks */}
-        {marks.map((a, i) => (
-          <MarkEl key={i} a={a} candles={candles}
-            delay={mode === 'after' ? 0.3 + i * 0.07 : 0} />
-        ))}
+        {/* marks */}
+        {(annots.filter(a => a.k==='mark') as Extract<Ann,{k:'mark'}>[]).map((a,i) =>
+          <MarkEl key={i} a={a} cs={candles} del={mode==='after' ? .3+i*.07 : 0} />
+        )}
       </svg>
     </div>
   )
