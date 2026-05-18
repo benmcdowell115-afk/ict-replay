@@ -43,9 +43,10 @@ const LINE_STYLE: Record<string, number> = {
 }
 
 export function ReplayChartLW({ mode, scenarioId }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const chartRef     = useRef<ReturnType<typeof createChart> | null>(null)
-  const seriesRef    = useRef<any>(null)
+  const containerRef  = useRef<HTMLDivElement>(null)
+  const chartRef      = useRef<ReturnType<typeof createChart> | null>(null)
+  const seriesRef     = useRef<any>(null)
+  const priceLinesRef = useRef<any[]>([])
   const [data,    setData]    = useState<ChartFile | null>(null)
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState<string | null>(null)
@@ -93,10 +94,12 @@ export function ReplayChartLW({ mode, scenarioId }: Props) {
       : data.bars
     series.setData(visible)
 
-    // Render annotations for this mode
+    // Clear old price lines then render annotations for this mode
+    priceLinesRef.current.forEach(pl => { try { series.removePriceLine(pl) } catch {} })
+    priceLinesRef.current = []
     const annots = mode === 'before' ? (data.beforeAnnotations ?? []) : (data.afterAnnotations ?? [])
     annots.forEach((a: Annotation) => {
-      series.createPriceLine({
+      const pl = series.createPriceLine({
         price:             a.price,
         color:             a.color,
         lineWidth:         1,
@@ -104,6 +107,7 @@ export function ReplayChartLW({ mode, scenarioId }: Props) {
         axisLabelVisible:  a.axisLabel !== false,
         title:             a.title ?? '',
       })
+      priceLinesRef.current.push(pl)
     })
 
     // Markers (after mode only)
