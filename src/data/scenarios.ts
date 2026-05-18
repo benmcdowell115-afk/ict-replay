@@ -1,24 +1,16 @@
 // ICT Replay Trainer — 30 curated scenarios.
-// Candle spec: [x, openY, closeY, highY, lowY] — bull = openY > closeY
-// SVG canvas: 340 × 150, chart area y 12→138
+// Chart data lives in public/chart-data/{id}.json (real OHLCV from Twelve Data).
 
-export type Category = 'fvg' | 'order-block' | 'liquidity' | 'market-structure' | 'amd' | 'kill-zone' | 'judas-swing' | 'full-model'
+export type Category   = 'fvg' | 'order-block' | 'liquidity' | 'market-structure' | 'amd' | 'kill-zone' | 'judas-swing' | 'full-model'
 export type Difficulty = 'beginner' | 'intermediate' | 'advanced'
-export type Instrument = 'NQ' | 'ES' | 'GC' | 'SI'
-export type TF = '1m' | '5m' | '15m' | '1H' | '4H'
-export type Session = 'Asia' | 'London' | 'NY AM' | 'NY PM'
-export type Direction = 'long' | 'short' | 'wait'
-export type Result = 'worked' | 'partial' | 'failed'
-
-type CS = [number, number, number, number, number]
-
-interface Zone  { x:number; y:number; w:number; h:number; type:'amber'|'blue'|'green'|'red'|'purple'|'slate' }
-interface Line  { x1:number; y1:number; x2:number; y2:number; color:string; dashed?:boolean; label?:string; lx?:number; ly?:number }
+export type TF         = '1m' | '5m' | '15m' | '1H' | '4H'
+export type Session    = 'Asia' | 'London' | 'NY AM' | 'NY PM'
+export type Result     = 'worked' | 'partial' | 'failed'
 
 export interface Question {
   prompt: string
   options: string[]
-  correct: number  // index into options
+  correct: number
   explanation: string
 }
 
@@ -27,47 +19,21 @@ export interface Scenario {
   title: string
   category: Category
   difficulty: Difficulty
-  instrument: Instrument
+  instrument: string   // display label e.g. 'EUR/USD'
   timeframe: TF
   session: Session
-
-  // Context shown before answering
   htfContext: string
   sessionContext: string
-
-  // "Before" chart — up to the decision point
-  beforeCandles: CS[]
-  beforeZones?: Zone[]
-  beforeLines?: Line[]
-
-  // "After" chart — what happened
-  afterCandles: CS[]
-  afterZones?: Zone[]
-  afterLines?: Line[]
-
-  // 4 quiz questions
-  q1: Question  // What concept is forming?
-  q2: Question  // What direction?
-  q3: Question  // Draw on Liquidity?
-  q4: Question  // Best entry approach?
-
-  // Outcome
+  q1: Question
+  q2: Question
+  q3: Question
+  q4: Question
   result: Result
   rAchieved: number | null
   explanation: string
-
-  // Optional TradingView reference
   tvSymbol: string
   tvInterval: string
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared shorthand colours for zones
-const ZA = 'amber' as const
-const ZB = 'blue'  as const
-const ZG = 'green' as const
-const ZR = 'red'   as const
-const ZS = 'slate' as const
 
 export const scenarios: Scenario[] = [
 
@@ -77,29 +43,11 @@ export const scenarios: Scenario[] = [
     title: 'Classic Bullish FVG Retracement',
     category: 'fvg',
     difficulty: 'beginner',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'Daily structure is bullish. Price is above the 4H OB. No major red events today.',
     sessionContext: 'NY AM kill zone. Prior Asia session formed equal lows below that were swept by London. NQ is now in distribution upward.',
-    beforeCandles: [
-      [10,106,92,100,112],[36,94,80,88,100],[62,82,70,76,88],
-      [88,86,98,80,104],[114,100,26,22,104],[140,32,46,28,54],
-      [166,48,60,44,66],[192,62,74,58,78],
-    ],
-    beforeZones: [{ x:114,y:54,w:218,h:26,type:ZA }],
-    beforeLines: [
-      { x1:114,y1:80,x2:332,y2:80,color:'rgba(245,158,11,0.4)',dashed:true,label:'FVG',lx:118,ly:77 },
-      { x1:114,y1:54,x2:332,y2:54,color:'rgba(245,158,11,0.4)',dashed:true },
-    ],
-    afterCandles: [
-      [226,76,64,60,80],[252,66,54,50,70],[278,56,44,40,60],[304,46,34,30,50],
-    ],
-    afterZones: [{ x:114,y:54,w:218,h:26,type:ZA }],
-    afterLines: [
-      { x1:114,y1:80,x2:332,y2:80,color:'rgba(245,158,11,0.4)',dashed:true },
-      { x1:114,y1:54,x2:332,y2:54,color:'rgba(245,158,11,0.4)',dashed:true },
-    ],
     q1: {
       prompt: 'What ICT concept is highlighted at the arrow?',
       options: ['Order Block (OB)', 'Fair Value Gap (FVG)', 'Breaker Block', 'Premium/Discount Zone', 'Inducement'],
@@ -137,29 +85,11 @@ export const scenarios: Scenario[] = [
     title: 'Bearish FVG After BOS — Short',
     category: 'fvg',
     difficulty: 'intermediate',
-    instrument: 'ES',
+    instrument: 'PLACEHOLDER',
     timeframe: '5m',
     session: 'NY AM',
     htfContext: '4H structure broke bearish. Daily OB sits overhead. Prior week high is BSL already taken.',
     sessionContext: 'NY AM. ES had a Judas swing at the open running to a local BSL. Now structure is bearish on 5m with a fresh BOS.',
-    beforeCandles: [
-      [10,84,72,80,90],[36,74,62,70,80],[62,64,52,60,70],
-      [88,54,44,50,58],[114,48,102,44,106],[140,98,86,84,103],
-      [166,98,88,84,103],[192,90,78,74,95],
-    ],
-    beforeZones: [{ x:114,y:58,w:218,h:26,type:ZA }],
-    beforeLines: [
-      { x1:114,y1:58,x2:332,y2:58,color:'rgba(245,158,11,0.4)',dashed:true,label:'FVG',lx:118,ly:55 },
-      { x1:114,y1:84,x2:332,y2:84,color:'rgba(245,158,11,0.4)',dashed:true },
-    ],
-    afterCandles: [
-      [226,80,94,76,98],[252,96,108,92,112],[278,106,118,102,122],[304,116,126,112,128],
-    ],
-    afterZones: [{ x:114,y:58,w:218,h:26,type:ZA }],
-    afterLines: [
-      { x1:114,y1:58,x2:332,y2:58,color:'rgba(245,158,11,0.4)',dashed:true },
-      { x1:114,y1:84,x2:332,y2:84,color:'rgba(245,158,11,0.4)',dashed:true },
-    ],
     q1: {
       prompt: 'What is the amber zone and why does it matter here?',
       options: ['A bullish Order Block — buy from it', 'A bearish Fair Value Gap — sell from it', 'A premium zone — price should avoid it', 'A prior day high — wait for a sweep'],
@@ -197,25 +127,11 @@ export const scenarios: Scenario[] = [
     title: 'Bearish OB at Judas Swing High',
     category: 'order-block',
     difficulty: 'beginner',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'Weekly structure is bearish. 4H OB sits overhead and has not been retested yet. Daily bias is short.',
     sessionContext: 'NY AM. NQ opened and ran to the prior day high (BSL) in a textbook Judas swing. The last bullish candle before the big displacement down is the OB.',
-    beforeCandles: [
-      [10,95,75,88,100],[34,72,55,65,78],[58,52,35,45,58],
-      [82,32,14,25,38],[106,12,28,6,34],[130,25,44,18,50],
-      [154,42,60,35,66],[178,58,42,50,64],[202,40,22,32,46],
-    ],
-    beforeZones: [{ x:10,y:14,w:200,h:61,type:ZB }],
-    beforeLines: [
-      { x1:10,y1:14,x2:210,y2:14,color:'rgba(96,165,250,0.4)',dashed:true,label:'OB',lx:14,ly:10 },
-      { x1:10,y1:75,x2:210,y2:75,color:'rgba(96,165,250,0.4)',dashed:true },
-    ],
-    afterCandles: [
-      [226,24,42,18,48],[250,40,60,34,66],[274,58,78,52,84],[298,76,92,70,98],
-    ],
-    afterZones: [{ x:10,y:14,w:250,h:61,type:ZB }],
     q1: {
       prompt: 'What does the blue zone represent in this context?',
       options: ['A bullish Fair Value Gap — buy from here', 'A bearish Order Block — the last bull candle before displacement', 'A premium zone — overextended, wait', 'A breaker block from a failed OB'],
@@ -253,22 +169,11 @@ export const scenarios: Scenario[] = [
     title: 'Equal Lows Swept — Bullish Reversal',
     category: 'liquidity',
     difficulty: 'beginner',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'Daily structure is bullish. The prior week formed equal lows. Daily bias is long.',
     sessionContext: 'NY AM. NQ dipped below the equal lows formed over 3 sessions, swept the SSL with a wick, then immediately printed a reversal candle.',
-    beforeCandles: [
-      [10,72,52,65,74],[34,50,68,44,74],[58,65,50,58,74],
-      [82,48,68,42,74],[106,65,52,58,74],[130,50,68,44,74],
-      [154,65,48,58,74],[178,46,90,40,102],[202,98,68,62,84],
-    ],
-    beforeLines: [
-      { x1:10,y1:74,x2:220,y2:74,color:'rgba(248,113,113,0.6)',dashed:true,label:'Equal Lows (SSL)',lx:14,ly:70 },
-    ],
-    afterCandles: [
-      [226,65,48,58,70],[250,46,30,40,52],[274,28,15,22,34],[298,16,8,10,22],
-    ],
     q1: {
       prompt: 'What just happened at the wick that swept below the equal lows?',
       options: ['Price found genuine support — the lows are holding', 'SSL (sell-side liquidity) was swept — stop orders triggered then price reversed', 'A bearish OB was mitigated — expect continuation down', 'Equilibrium was reached — price will consolidate'],
@@ -306,23 +211,11 @@ export const scenarios: Scenario[] = [
     title: 'CHoCH After Liquidity Sweep — Bullish Flip',
     category: 'market-structure',
     difficulty: 'intermediate',
-    instrument: 'ES',
+    instrument: 'PLACEHOLDER',
     timeframe: '5m',
     session: 'London',
     htfContext: 'Daily structure is bullish. 4H making higher highs and lows. The current pullback is a retracement.',
     sessionContext: 'London session. ES was in a short-term bearish trend on 5m (lower highs, lower lows). London swept the prior session low (SSL), then printed the first bullish CHoCH — breaking above the most recent lower high.',
-    beforeCandles: [
-      [10,35,55,28,62],[34,52,68,46,74],[58,64,48,58,70],
-      [82,45,62,38,68],[106,58,75,52,80],[130,72,55,65,78],
-      [154,52,72,46,78],[178,68,92,62,100],[202,95,48,44,100],
-    ],
-    beforeLines: [
-      { x1:10,y1:55,x2:220,y2:55,color:'rgba(52,211,153,0.5)',dashed:true,label:'CHoCH level',lx:14,ly:51 },
-      { x1:178,y1:96,x2:220,y2:96,color:'rgba(248,113,113,0.4)',dashed:true,label:'SSL swept',lx:180,ly:92 },
-    ],
-    afterCandles: [
-      [226,68,52,62,74],[250,50,35,44,56],[274,33,20,27,40],[298,18,8,12,24],
-    ],
     q1: {
       prompt: 'What structural event just occurred at the dashed green line?',
       options: ['A Break of Structure (BOS) — trend continuation bearish', 'A Change of Character (CHoCH) — potential bullish reversal', 'An Order Block mitigation — expect rejection', 'A Fair Value Gap — wait for retracement'],
@@ -360,31 +253,11 @@ export const scenarios: Scenario[] = [
     title: 'AMD — Identify the Manipulation Phase',
     category: 'amd',
     difficulty: 'intermediate',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'Daily bias is bullish. Prior day was bullish. No major news events today.',
     sessionContext: 'Asia session formed a clear range (Accumulation). At the NY open, NQ dropped sharply below the Asia low — the Manipulation phase. You are now deciding whether this is the real breakdown or the Judas sweep before Distribution up.',
-    beforeCandles: [
-      // Accumulation (Asia flat)
-      [10,64,60,58,68],[34,62,66,58,70],[58,65,61,60,68],[82,63,67,60,70],
-      // Manipulation (NY open drop)
-      [106,65,98,60,110],[130,102,80,96,108],
-    ],
-    beforeZones: [
-      { x:10,y:56,w:100,h:18,type:ZS },
-      { x:106,y:60,w:50,h:52,type:ZR },
-    ],
-    beforeLines: [
-      { x1:10,y1:66,x2:210,y2:66,color:'rgba(248,113,113,0.4)',dashed:true,label:'Asia Low (SSL)',lx:14,ly:62 },
-    ],
-    afterCandles: [
-      [154,78,55,50,84],[178,52,30,24,58],[202,28,12,8,34],[226,14,6,4,18],[250,8,3,2,12],
-    ],
-    afterZones: [
-      { x:10,y:56,w:100,h:18,type:ZS },
-      { x:106,y:6,w:200,h:60,type:ZG },
-    ],
     q1: {
       prompt: 'In the AMD model, what phase is the sharp drop to the Asia low?',
       options: ['Accumulation — building positions', 'Manipulation — false move to collect liquidity', 'Distribution — real directional move', 'Consolidation — no clear bias'],
@@ -422,24 +295,11 @@ export const scenarios: Scenario[] = [
     title: 'NY Open Judas Swing — Short Setup',
     category: 'judas-swing',
     difficulty: 'intermediate',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '5m',
     session: 'NY AM',
     htfContext: '4H structure broke bearish this week. Daily OB overhead. Prior day closed bearish.',
     sessionContext: 'NY AM 9:30 EST. NQ opened and aggressively ran above the prior day high (BSL) in the first 10 minutes. The move was fast with no pullback — a classic Judas spike.',
-    beforeCandles: [
-      [10,62,72,58,78],[34,70,62,65,75],[58,65,55,60,70],
-      // Judas spike
-      [82,55,15,8,58],[106,18,35,12,40],[130,32,50,26,56],
-      [154,48,65,42,70],[178,62,48,55,68],[202,46,65,40,70],
-    ],
-    beforeZones: [{ x:82,y:8,w:60,h:50,type:ZR }],
-    beforeLines: [
-      { x1:10,y1:62,x2:220,y2:62,color:'rgba(248,113,113,0.5)',dashed:true,label:'Prior Day High (BSL)',lx:14,ly:58 },
-    ],
-    afterCandles: [
-      [226,62,78,56,84],[250,75,90,68,96],[274,87,102,80,108],[298,99,112,92,118],
-    ],
     q1: {
       prompt: 'What is the NY open spike above the prior day high called in ICT?',
       options: ['Breakout — enter long immediately', 'Judas Swing — a fake move to collect BSL before the real direction', 'OTE — optimal entry for longs at a retracement', 'Silver Bullet — a time-based entry'],
@@ -477,25 +337,11 @@ export const scenarios: Scenario[] = [
     title: 'Silver Bullet — 10:00 AM Window Long',
     category: 'kill-zone',
     difficulty: 'intermediate',
-    instrument: 'ES',
+    instrument: 'PLACEHOLDER',
     timeframe: '1m',
     session: 'NY AM',
     htfContext: 'Daily structure bullish. 15m CHoCH formed earlier in the session confirming bullish bias for NY AM.',
     sessionContext: '10:00–11:00 AM EST Silver Bullet window. ES formed a 1m FVG after sweeping a local SSL at 10:08 AM. The window is active.',
-    beforeCandles: [
-      [10,72,62,68,78],[34,64,74,58,80],[58,72,62,66,78],
-      [82,64,76,60,82],[106,84,74,80,90],[130,78,46,42,84],
-      [154,50,62,46,60],[178,58,68,54,74],[202,70,80,66,84],
-    ],
-    beforeZones: [{ x:106,y:60,w:226,h:20,type:ZA }],
-    beforeLines: [
-      { x1:10,y1:80,x2:332,y2:80,color:'rgba(248,113,113,0.4)',dashed:true,label:'SSL swept',lx:14,ly:76 },
-      { x1:106,y1:60,x2:332,y2:60,color:'rgba(245,158,11,0.4)',dashed:true,label:'1m FVG',lx:110,ly:56 },
-    ],
-    afterCandles: [
-      [226,78,66,74,84],[252,64,52,60,70],[278,50,38,46,56],[304,36,26,32,42],
-    ],
-    afterZones: [{ x:106,y:60,w:226,h:20,type:ZA }],
     q1: {
       prompt: 'What time-based ICT framework makes this 1m FVG particularly high probability?',
       options: ['The London Kill Zone window', 'The 10:00–11:00 AM Silver Bullet window', 'The ICT 9:50 macro', 'The NY PM Silver Bullet (2–3 PM)'],
@@ -533,27 +379,11 @@ export const scenarios: Scenario[] = [
     title: 'Bullish OB Fails — Breaker Block Short',
     category: 'order-block',
     difficulty: 'advanced',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'Market has shifted bearish on 4H. Weekly structure printed a lower high. The OB shown previously held and caused a rally — but now structure has reversed bearish.',
     sessionContext: 'NY AM. The same bullish OB that caused a previous rally has now been violated — price closed below it entirely. Price has rallied back to test the same zone. This is now a Breaker Block.',
-    beforeCandles: [
-      // Previous rally from OB
-      [10,88,62,82,92],[34,60,42,54,66],[58,40,24,34,46],
-      // OB violated
-      [82,22,85,16,92],[106,82,98,76,104],
-      // Rally back to former OB (now breaker)
-      [130,95,72,88,100],[154,70,52,64,76],[178,50,35,44,56],[202,33,48,27,54],
-    ],
-    beforeZones: [{ x:10,y:24,w:220,h:64,type:ZB }],
-    beforeLines: [
-      { x1:10,y1:24,x2:230,y2:24,color:'rgba(96,165,250,0.4)',dashed:true,label:'Former Bull OB → Breaker',lx:14,ly:20 },
-      { x1:10,y1:88,x2:230,y2:88,color:'rgba(96,165,250,0.4)',dashed:true },
-    ],
-    afterCandles: [
-      [226,46,65,40,70],[250,62,80,56,86],[274,78,95,72,100],[298,92,108,86,114],
-    ],
     q1: {
       prompt: 'The blue zone was a bullish OB that previously worked. Now price is retesting it after closing below. What has it become?',
       options: ['Still a bullish OB — buy from it', 'A Breaker Block — the failed OB flips to opposite polarity', 'A premium zone — price will consolidate here', 'An FVG — wait for the midpoint retest'],
@@ -591,32 +421,11 @@ export const scenarios: Scenario[] = [
     title: 'OB in Discount — Only Buy Discount',
     category: 'fvg',
     difficulty: 'advanced',
-    instrument: 'GC',
+    instrument: 'PLACEHOLDER',
     timeframe: '1H',
     session: 'NY AM',
     htfContext: 'Gold (GC) is in a weekly bullish trend. The 4H swing from last week\'s low to this week\'s high defines the current range.',
     sessionContext: 'NY AM. Gold pulled back from the weekly high. The 4H swing range is established — 50% level (equilibrium) is marked. A bullish OB sits below equilibrium (in discount).',
-    beforeCandles: [
-      [10,30,50,24,56],[34,48,68,42,74],[58,65,85,58,92],
-      [82,82,100,75,106],[106,98,115,92,122],
-      // Pullback
-      [130,112,90,106,118],[154,88,72,82,94],[178,70,55,64,76],[202,52,38,46,58],
-    ],
-    beforeZones: [
-      { x:10,y:12,w:270,h:58,type:ZR },
-      { x:10,y:70,w:270,h:68,type:ZG },
-    ],
-    beforeLines: [
-      { x1:10,y1:70,x2:280,y2:70,color:'rgba(148,163,184,0.6)',dashed:true,label:'EQ 50%',lx:14,ly:66 },
-      { x1:178,y1:55,x2:280,y2:55,color:'rgba(96,165,250,0.5)',dashed:true,label:'Bullish OB',lx:182,ly:51 },
-    ],
-    afterCandles: [
-      [226,36,22,30,42],[250,20,12,14,28],[274,14,8,8,20],[298,10,4,4,16],
-    ],
-    afterZones: [
-      { x:10,y:12,w:310,h:58,type:ZR },
-      { x:10,y:70,w:310,h:68,type:ZG },
-    ],
     q1: {
       prompt: 'The Bullish OB is below the 50% equilibrium line. What does this mean for the trade?',
       options: ['Avoid it — OBs only work above equilibrium', 'High probability long — discount OB aligns with ICT buy-in-discount rule', 'Premium zone — short from this level', 'Wait for price to reach equilibrium first'],
@@ -654,23 +463,11 @@ export const scenarios: Scenario[] = [
     title: 'FOMC Day — The Correct Answer is Wait',
     category: 'full-model',
     difficulty: 'beginner',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'FOMC announcement is at 2:00 PM EST today. NQ has been choppy with no clear directional structure pre-event.',
     sessionContext: 'NY AM on FOMC day. No clean ICT setups have formed. Price is oscillating around the daily open with equal highs and equal lows forming — engineered liquidity on both sides.',
-    beforeCandles: [
-      [10,65,55,60,70],[34,52,62,46,68],[58,60,50,54,66],
-      [82,48,58,42,64],[106,55,45,50,60],[130,42,52,36,58],
-      [154,50,40,44,56],[178,38,48,32,54],[202,45,55,40,60],
-    ],
-    beforeLines: [
-      { x1:10,y1:42,x2:220,y2:42,color:'rgba(52,211,153,0.4)',dashed:true,label:'Equal Highs',lx:14,ly:38 },
-      { x1:10,y1:70,x2:220,y2:70,color:'rgba(248,113,113,0.4)',dashed:true,label:'Equal Lows',lx:14,ly:74 },
-    ],
-    afterCandles: [
-      [226,52,65,46,70],[250,62,48,56,68],[274,45,60,38,65],[298,58,44,52,64],
-    ],
     q1: {
       prompt: 'What is notable about the chart pattern on an FOMC day?',
       options: ['Clear directional setup forming — trade it', 'Choppy, equal highs and lows — engineered liquidity on both sides, no clean bias', 'A premium zone is forming — short only', 'London has given a clear direction — follow it'],
@@ -708,28 +505,11 @@ export const scenarios: Scenario[] = [
     title: 'Displacement FVG — First Retracement Short',
     category: 'fvg',
     difficulty: 'advanced',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '5m',
     session: 'NY AM',
     htfContext: 'Weekly bearish. 4H BOS to the downside this week. Daily bias short.',
     sessionContext: 'NY AM. A single 5m candle moved 80+ NQ points — displacement. This is 3× the average candle size. A bearish FVG is left below the displacement candle. Price is now pulling back to fill part of it.',
-    beforeCandles: [
-      [10,28,46,22,52],[34,44,62,38,68],[58,54,70,50,70],
-      // DISPLACEMENT — big bear candle, C1.ly=70, C3.hy=90 → FVG y=70–90
-      [82,12,88,8,94],
-      // Post-displacement
-      [106,90,98,90,106],[130,100,88,94,106],
-      // Pullback into FVG
-      [154,90,78,84,96],[178,80,70,74,86],[202,72,62,68,78],
-    ],
-    beforeZones: [{ x:82,y:70,w:184,h:20,type:ZA }],
-    beforeLines: [
-      { x1:58,y1:70,x2:266,y2:70,color:'rgba(245,158,11,0.4)',dashed:true,label:'Displacement FVG',lx:62,ly:66 },
-      { x1:82,y1:90,x2:266,y2:90,color:'rgba(245,158,11,0.4)',dashed:true },
-    ],
-    afterCandles: [
-      [226,60,74,56,80],[252,72,86,68,92],[278,84,98,80,104],
-    ],
     q1: {
       prompt: 'A single 5m candle moved 80+ points. What does this signal in ICT?',
       options: ['Random volatility — ignore it', 'Displacement — institutional order flow aggressively delivering price, confirming direction', 'A liquidity sweep — price will return to the origin', 'Manipulation — fade the move immediately'],
@@ -767,27 +547,11 @@ export const scenarios: Scenario[] = [
     title: 'OTE Long — London Retracement Setup',
     category: 'market-structure',
     difficulty: 'intermediate',
-    instrument: 'ES',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'London',
     htfContext: 'Daily bullish. Prior week formed a clean swing low. 4H structure: higher highs and lows confirmed.',
     sessionContext: 'London session. ES formed a clean swing low then a swing high — establishing the OTE range. Price is now retracing from the swing high back toward the 62–79% zone.',
-    beforeCandles: [
-      [10,110,88,104,116],[34,85,65,78,92],[58,62,42,55,68],
-      [82,38,20,30,44],[106,18,35,12,42],[130,32,55,26,60],
-      [154,52,72,46,78],[178,68,85,62,92],[202,82,65,76,88],
-    ],
-    beforeZones: [{ x:82,y:68,w:170,h:24,type:'purple' }],
-    beforeLines: [
-      { x1:10,y1:110,x2:280,y2:110,color:'rgba(148,163,184,0.3)',dashed:true,label:'Swing Low',lx:14,ly:106 },
-      { x1:82,y1:20,x2:280,y2:20,color:'rgba(148,163,184,0.3)',dashed:true,label:'Swing High',lx:14,ly:16 },
-      { x1:82,y1:68,x2:280,y2:68,color:'rgba(192,132,252,0.4)',dashed:true,label:'OTE 62%',lx:86,ly:64 },
-      { x1:82,y1:92,x2:280,y2:92,color:'rgba(192,132,252,0.4)',dashed:true,label:'OTE 79%',lx:86,ly:96 },
-    ],
-    afterCandles: [
-      [226,63,48,58,70],[250,46,30,40,52],[274,28,15,22,34],[298,16,8,10,22],
-    ],
-    afterZones: [{ x:82,y:68,w:222,h:24,type:'purple' }],
     q1: {
       prompt: 'The purple zone (62–79% of the swing range) is called what in ICT?',
       options: ['Premium zone — avoid buying here', 'OTE (Optimal Trade Entry) — the highest probability retracement level', 'A Fair Value Gap — an imbalance to fill', 'A breaker block — a failed OB zone'],
@@ -825,23 +589,11 @@ export const scenarios: Scenario[] = [
     title: 'London Kill Zone — BSL Sweep Short',
     category: 'kill-zone',
     difficulty: 'beginner',
-    instrument: 'GC',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'London',
     htfContext: 'Gold is bearish on the daily. 4H made a lower high yesterday. Weekly bearish OB overhead.',
     sessionContext: 'London kill zone (2–5 AM EST). Gold spiked above the Asia session high (BSL) during London. Classic London manipulation sweep before the real NY move.',
-    beforeCandles: [
-      [10,58,52,54,62],[34,54,60,50,64],[58,58,54,54,62],
-      [82,56,22,14,60],[106,24,40,18,46],[130,38,55,32,60],
-      [154,52,68,46,72],[178,65,80,60,84],[202,77,92,72,98],
-    ],
-    beforeZones: [{ x:82,y:12,w:50,h:50,type:ZR }],
-    beforeLines: [
-      { x1:10,y1:58,x2:260,y2:58,color:'rgba(248,113,113,0.5)',dashed:true,label:'Asia High (BSL)',lx:14,ly:54 },
-    ],
-    afterCandles: [
-      [226,90,105,84,110],[250,102,118,96,122],[274,115,128,110,132],
-    ],
     q1: {
       prompt: 'Gold spiked above the Asia session high during London. What does this represent?',
       options: ['Genuine breakout — go long', 'BSL sweep during London kill zone — manipulation before the real bearish move', 'A CHoCH — structure has flipped bullish', 'An OB being mitigated — neutral signal'],
@@ -879,25 +631,11 @@ export const scenarios: Scenario[] = [
     title: 'Silver Bullet 2–3 PM Window — Short',
     category: 'kill-zone',
     difficulty: 'intermediate',
-    instrument: 'ES',
+    instrument: 'PLACEHOLDER',
     timeframe: '1m',
     session: 'NY PM',
     htfContext: 'Daily bearish. NY AM session delivered a bearish move and built a bearish OB. Intraday structure is short.',
     sessionContext: '2:00–3:00 PM Silver Bullet window. ES had a small rally during lunch. At 2:08 PM, price swept a local BSL (equal highs from the lunch consolidation), then created a 1m bearish FVG on the reversal.',
-    beforeCandles: [
-      [10,68,60,64,74],[34,62,54,58,68],[58,56,48,52,62],
-      [82,52,44,48,58],[106,46,54,42,60],[130,52,44,48,58],
-      [154,50,58,32,58],[178,56,78,52,84],[202,80,88,78,92],
-    ],
-    beforeZones: [{ x:178,y:58,w:154,h:20,type:ZA }],
-    beforeLines: [
-      { x1:10,y1:46,x2:332,y2:46,color:'rgba(248,113,113,0.4)',dashed:true,label:'BSL swept',lx:14,ly:42 },
-      { x1:178,y1:58,x2:332,y2:58,color:'rgba(245,158,11,0.4)',dashed:true,label:'1m FVG',lx:182,ly:54 },
-      { x1:178,y1:78,x2:332,y2:78,color:'rgba(245,158,11,0.4)',dashed:true },
-    ],
-    afterCandles: [
-      [226,86,96,82,102],[252,94,106,90,112],[278,104,116,100,120],
-    ],
     q1: {
       prompt: 'What time window makes this 1m FVG setup particularly high probability?',
       options: ['NY AM kill zone (9:30–11:00)', '2:00–3:00 PM Silver Bullet window', 'ICT macro at 2:30 PM', 'London overlap session'],
@@ -935,25 +673,11 @@ export const scenarios: Scenario[] = [
     title: 'BOS Retest — Short Continuation',
     category: 'market-structure',
     difficulty: 'intermediate',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '5m',
     session: 'NY AM',
     htfContext: 'Weekly and daily bearish. The 4H made a lower high and lower low this week.',
     sessionContext: 'NY AM. A clean BOS occurred to the downside on the 5m — price broke through a prior swing low with displacement. Price is now pulling back to retest the BOS level and the bearish OB left by the displacement candle.',
-    beforeCandles: [
-      [10,40,62,33,68],[34,58,75,52,80],[58,72,55,65,78],
-      [82,52,30,45,58],[106,28,48,22,54],[130,45,62,38,68],
-      [154,58,78,52,84],[178,75,58,68,80],[202,55,38,48,62],
-    ],
-    beforeZones: [{ x:58,y:30,w:200,h:30,type:ZB }],
-    beforeLines: [
-      { x1:10,y1:75,x2:270,y2:75,color:'rgba(248,113,113,0.5)',dashed:true,label:'BOS level',lx:14,ly:71 },
-      { x1:58,y1:30,x2:258,y2:30,color:'rgba(96,165,250,0.4)',dashed:true,label:'Bearish OB',lx:62,ly:26 },
-      { x1:58,y1:60,x2:258,y2:60,color:'rgba(96,165,250,0.4)',dashed:true },
-    ],
-    afterCandles: [
-      [226,36,52,30,58],[250,50,68,44,74],[274,66,85,60,90],
-    ],
     q1: {
       prompt: 'Price broke below the swing low (BOS) then pulled back to the OB. What is this called?',
       options: ['A bullish CHoCH — price is reversing', 'A post-BOS retracement to the OB — standard bearish continuation entry', 'A breaker block — the OB has failed', 'Premium/Discount setup — buy here'],
@@ -991,22 +715,11 @@ export const scenarios: Scenario[] = [
     title: 'Equal Highs BSL Swept — Reversal Short',
     category: 'liquidity',
     difficulty: 'beginner',
-    instrument: 'ES',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'Daily structure: bearish OB overhead. 4H bias is short. Prior 3 sessions formed equal highs.',
     sessionContext: 'NY AM. ES ran above 3 equal highs formed over the prior 3 sessions — a textbook BSL sweep. The move was fast, with an immediate wick reversal below the equal highs level.',
-    beforeCandles: [
-      [10,50,64,38,70],[34,60,48,38,66],[58,50,62,38,68],
-      [82,58,46,38,62],[106,48,60,38,66],[130,58,46,38,62],
-      [154,52,62,28,68],[178,60,74,55,80],[202,72,86,67,92],
-    ],
-    beforeLines: [
-      { x1:10,y1:38,x2:270,y2:38,color:'rgba(248,113,113,0.5)',dashed:true,label:'Equal Highs (BSL)',lx:14,ly:34 },
-    ],
-    afterCandles: [
-      [226,84,98,78,104],[252,96,110,90,116],[278,108,120,104,126],[304,118,128,114,132],
-    ],
     q1: {
       prompt: 'Three equal highs formed over 3 sessions. What type of liquidity is this?',
       options: ['SSL — sell stops below the highs', 'BSL — buy stops above the equal highs', 'Engineered discount — buy from here', 'OB zone — institutional orders resting there'],
@@ -1044,23 +757,11 @@ export const scenarios: Scenario[] = [
     title: 'Asian Range SSL Sweep — NY Long',
     category: 'kill-zone',
     difficulty: 'beginner',
-    instrument: 'ES',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'Daily bullish. 4H higher highs and higher lows. Macro trend is up.',
     sessionContext: 'NY AM. The Asia session formed a clear range (high and low defined). At the NY open (9:30), ES dipped below the Asia session low (SSL sweep), immediately reversed, and is now back inside the Asia range.',
-    beforeCandles: [
-      [10,60,54,56,64],[34,56,62,52,66],[58,60,56,56,64],
-      [82,58,94,54,102],[106,100,72,66,106],[130,70,52,64,76],
-      [154,50,36,44,58],[178,34,22,28,40],[202,20,12,16,26],
-    ],
-    beforeZones: [{ x:10,y:52,w:82,h:16,type:ZS }],
-    beforeLines: [
-      { x1:10,y1:62,x2:270,y2:62,color:'rgba(248,113,113,0.5)',dashed:true,label:'Asia Low (SSL)',lx:14,ly:58 },
-    ],
-    afterCandles: [
-      [226,13,8,8,18],[250,10,5,4,14],[274,7,3,2,10],[298,4,1,1,8],
-    ],
     q1: {
       prompt: 'The NY open dipped below the Asia session low with a wick. What just happened?',
       options: ['Price found support — buy the bounce', 'SSL was swept — sell stops taken before the real NY move upward', 'Asia range broke down — go short', 'An OB was formed — wait for retest'],
@@ -1098,30 +799,11 @@ export const scenarios: Scenario[] = [
     title: 'AMD Bearish Day — Judas Spike Short',
     category: 'amd',
     difficulty: 'intermediate',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'Weekly bearish candle. 4H structure: lower highs. Daily bias confirmed short. No major news.',
     sessionContext: 'NY AM. Asia formed a range (Accumulation). At the NY open, NQ spiked above the Asia high (BSL sweep — the Manipulation). Price immediately reversed. You are in the Manipulation phase watching for the Distribution setup.',
-    beforeCandles: [
-      [10,62,58,58,66],[34,60,64,56,68],[58,62,58,58,66],
-      [82,60,18,12,64],[106,20,42,16,48],[130,40,56,34,62],
-      [154,54,70,48,76],[178,68,82,62,88],[202,80,94,74,100],
-    ],
-    beforeZones: [
-      { x:10,y:54,w:78,h:14,type:ZS },
-      { x:82,y:12,w:40,h:52,type:ZR },
-    ],
-    beforeLines: [
-      { x1:10,y1:62,x2:260,y2:62,color:'rgba(52,211,153,0.4)',dashed:true,label:'Asia High (BSL)',lx:14,ly:58 },
-    ],
-    afterCandles: [
-      [226,92,108,86,114],[250,105,118,98,124],[274,115,128,108,134],
-    ],
-    afterZones: [
-      { x:10,y:54,w:78,h:14,type:ZS },
-      { x:82,y:12,w:182,h:122,type:ZR },
-    ],
     q1: {
       prompt: 'In the AMD bearish model, what is the NY open spike above the Asia high?',
       options: ['Distribution — the real bearish move starting', 'Manipulation — BSL sweep before the real bearish Distribution', 'Accumulation — still building the base', 'CHoCH — structure flipped bullish'],
@@ -1159,25 +841,11 @@ export const scenarios: Scenario[] = [
     title: 'ICT 9:50 Macro — Precision 1m Short',
     category: 'kill-zone',
     difficulty: 'intermediate',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '1m',
     session: 'NY AM',
     htfContext: 'Daily bearish bias established at the open. 15m CHoCH to the downside confirmed.',
     sessionContext: 'NY AM. The 9:50–10:10 ICT macro window is active. NQ ran to a local BSL (equal highs from 9:45) at 9:52 AM. A 1m bearish FVG formed on the reversal. You have 8 minutes left in the macro.',
-    beforeCandles: [
-      [10,58,50,54,62],[34,52,62,48,66],[58,60,52,56,64],
-      [82,54,46,52,60],[106,48,56,52,62],[130,54,46,52,60],
-      [154,54,62,24,66],[178,60,86,56,92],[202,90,82,86,96],
-    ],
-    beforeZones: [{ x:154,y:66,w:178,h:20,type:ZA }],
-    beforeLines: [
-      { x1:10,y1:50,x2:332,y2:50,color:'rgba(248,113,113,0.4)',dashed:true,label:'BSL swept',lx:14,ly:46 },
-      { x1:154,y1:66,x2:332,y2:66,color:'rgba(245,158,11,0.4)',dashed:true },
-      { x1:154,y1:86,x2:332,y2:86,color:'rgba(245,158,11,0.4)',dashed:true,label:'1m FVG',lx:158,ly:62 },
-    ],
-    afterCandles: [
-      [226,80,92,76,98],[252,90,104,86,110],[278,102,116,98,122],
-    ],
     q1: {
       prompt: 'What makes the 9:50–10:10 window special in ICT methodology?',
       options: ['It is the NY open — most volatile time', 'It is an ICT macro — the algorithm runs a predictable liquidity cycle within this 20-minute window', 'It is when the London session closes', 'It is when data is released'],
@@ -1215,24 +883,11 @@ export const scenarios: Scenario[] = [
     title: 'Inducement vs Real BSL — Don\'t Get Trapped',
     category: 'liquidity',
     difficulty: 'advanced',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '5m',
     session: 'NY AM',
     htfContext: 'Daily bearish. 4H OB overhead. Prior week high is the real BSL target.',
     sessionContext: 'NY AM. In the middle of a bearish move, price formed small equal highs. These small equal highs are INSIDE a bearish OB zone (premium). Retail traders see them as a "BSL" and wait for a sweep to go long. But they are inducement — a trap before continuation down.',
-    beforeCandles: [
-      [10,30,52,24,58],[34,50,68,44,74],[58,65,48,58,70],
-      [82,46,62,40,68],[106,60,44,52,66],[130,42,56,36,62],
-      [154,54,40,48,60],[178,38,52,32,58],[202,50,36,42,56],
-    ],
-    beforeZones: [{ x:82,y:36,w:180,h:26,type:ZR }],
-    beforeLines: [
-      { x1:82,y1:36,x2:280,y2:36,color:'rgba(248,113,113,0.4)',dashed:true,label:'Inducement highs',lx:86,ly:32 },
-      { x1:82,y1:62,x2:280,y2:62,color:'rgba(248,113,113,0.4)',dashed:true },
-    ],
-    afterCandles: [
-      [226,34,50,28,56],[250,48,65,42,70],[274,62,80,56,86],[298,78,95,72,100],
-    ],
     q1: {
       prompt: 'Equal highs formed inside a bearish OB (premium zone). Are these the real BSL?',
       options: ['Yes — equal highs are always real BSL', 'No — these are inducement. Real BSL is the prior week high above the OB', 'Yes — any equal highs must be swept before price continues'],
@@ -1270,29 +925,11 @@ export const scenarios: Scenario[] = [
     title: 'MTFA — 4H OB + 15m FVG Confluence',
     category: 'market-structure',
     difficulty: 'advanced',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'Weekly bullish. 4H OB sitting below current price — a bullish OB that price has not yet returned to. Daily structure bullish.',
     sessionContext: 'NY AM. NQ pulled back into the 4H bullish OB zone. Within that 4H OB, a 15m bullish FVG formed. This is the ICT drill-down: 4H sets the zone, 15m provides the entry.',
-    beforeCandles: [
-      [10,28,48,22,54],[34,46,65,40,70],[58,62,80,56,86],
-      [82,78,58,72,84],[106,55,38,48,62],[130,36,22,30,44],
-      [154,20,35,14,42],[178,32,48,26,54],[202,45,58,38,64],
-    ],
-    beforeZones: [
-      { x:82,y:40,w:200,h:48,type:ZB },
-      { x:154,y:14,w:80,h:28,type:ZA },
-    ],
-    beforeLines: [
-      { x1:82,y1:40,x2:280,y2:40,color:'rgba(96,165,250,0.4)',dashed:true,label:'4H OB top',lx:86,ly:36 },
-      { x1:82,y1:88,x2:280,y2:88,color:'rgba(96,165,250,0.4)',dashed:true,label:'4H OB bot',lx:86,ly:92 },
-      { x1:154,y1:14,x2:234,y2:14,color:'rgba(245,158,11,0.4)',dashed:true },
-      { x1:154,y1:42,x2:234,y2:42,color:'rgba(245,158,11,0.4)',dashed:true,label:'15m FVG',lx:158,ly:10 },
-    ],
-    afterCandles: [
-      [226,56,40,50,62],[250,38,24,32,44],[274,22,10,16,28],[298,12,5,7,18],
-    ],
     q1: {
       prompt: 'The 15m FVG sits inside the 4H OB. What does this confluence mean?',
       options: ['Ignore both — too much complexity', 'Highest-probability long: 4H OB gives the zone, 15m FVG gives the precision entry within it', 'Only trade the 4H OB — ignore the 15m FVG'],
@@ -1330,22 +967,11 @@ export const scenarios: Scenario[] = [
     title: 'London Open Manipulation — Sweep and Reverse Long',
     category: 'kill-zone',
     difficulty: 'intermediate',
-    instrument: 'SI',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'London',
     htfContext: 'Silver (SI) is in a bullish weekly trend. Daily structure: higher highs and higher lows. 4H bullish OB below current price.',
     sessionContext: 'London open. Silver dropped aggressively below the Asia session low (SSL sweep) at the start of London. Immediately reversed. This is the London manipulation move before the real delivery in NY.',
-    beforeCandles: [
-      [10,60,54,56,64],[34,56,62,52,66],[58,60,54,56,64],
-      [82,58,96,54,104],[106,102,75,70,108],[130,72,54,66,78],
-      [154,52,36,46,58],[178,34,22,28,40],[202,20,12,14,26],
-    ],
-    beforeLines: [
-      { x1:10,y1:62,x2:270,y2:62,color:'rgba(248,113,113,0.5)',dashed:true,label:'Asia Low (SSL)',lx:14,ly:58 },
-    ],
-    afterCandles: [
-      [226,13,8,8,18],[250,9,4,4,14],[274,5,2,1,10],[298,3,1,1,7],
-    ],
     q1: {
       prompt: 'Silver dropped below the Asia low at the London open then immediately reversed. What does this mean?',
       options: ['Bearish breakdown — go short', 'SSL swept at London open — manipulation before bullish delivery', 'Asia range is broken — the range is no longer valid', 'OB mitigation — neutral signal'],
@@ -1383,25 +1009,11 @@ export const scenarios: Scenario[] = [
     title: 'Bearish OB Violated — Bullish Breaker Long',
     category: 'order-block',
     difficulty: 'advanced',
-    instrument: 'ES',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'ES broke structure bullish on the 4H this week — a CHoCH from a previously bearish trend. Daily now showing higher lows forming.',
     sessionContext: 'NY AM. A former bearish OB (that previously caused a drop) has now been violated — price closed above it entirely. Price is retesting the former OB from above. This zone is now a Bullish Breaker Block.',
-    beforeCandles: [
-      [10,90,70,84,96],[34,68,50,62,74],[58,48,30,42,54],
-      [82,28,8,22,34],[106,6,25,2,30],[130,22,42,16,48],
-      [154,40,58,34,64],[178,55,72,48,78],[202,70,52,64,76],
-    ],
-    beforeZones: [{ x:10,y:30,w:220,h:62,type:ZG }],
-    beforeLines: [
-      { x1:10,y1:30,x2:230,y2:30,color:'rgba(52,211,153,0.5)',dashed:true,label:'Former Bear OB → Bull Breaker',lx:14,ly:26 },
-      { x1:10,y1:92,x2:230,y2:92,color:'rgba(52,211,153,0.5)',dashed:true },
-    ],
-    afterCandles: [
-      [226,50,35,44,58],[250,33,20,28,40],[274,18,8,12,24],[298,10,4,6,16],
-    ],
-    afterZones: [{ x:10,y:30,w:308,h:62,type:ZG }],
     q1: {
       prompt: 'A former bearish OB was violated (price closed above it). Price is now retesting it. What has it become?',
       options: ['Still a bearish OB — short from it', 'A Bullish Breaker Block — former resistance now support', 'A premium zone — avoid buying', 'A Fair Value Gap — wait for midpoint'],
@@ -1439,26 +1051,11 @@ export const scenarios: Scenario[] = [
     title: 'Pre-Market Bias Read — Before the Open',
     category: 'full-model',
     difficulty: 'advanced',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '1H',
     session: 'NY AM',
     htfContext: 'Weekly candle: bullish close above the prior week high. 4H: three consecutive bullish candles, higher structure. Daily: prior day closed as a bullish engulfing candle.',
     sessionContext: 'Pre-market analysis (before 9:30 AM EST). Looking at the 1H chart. Prior session was bullish. Asia session is flat. No red events today. The question is: what is the bias for today, and where are the key levels?',
-    beforeCandles: [
-      [10,95,72,88,100],[34,70,50,64,76],[58,48,30,42,54],
-      [82,28,10,22,34],[106,8,28,2,34],[130,25,50,18,56],
-      [154,48,72,42,78],[178,70,92,64,98],[202,90,110,84,116],
-    ],
-    beforeZones: [
-      { x:10,y:6,w:210,h:58,type:ZR },
-      { x:10,y:64,w:210,h:54,type:ZG },
-    ],
-    beforeLines: [
-      { x1:10,y1:64,x2:270,y2:64,color:'rgba(148,163,184,0.5)',dashed:true,label:'EQ / Bias line',lx:14,ly:60 },
-    ],
-    afterCandles: [
-      [226,108,118,104,124],[250,116,125,112,130],[274,122,130,118,134],
-    ],
     q1: {
       prompt: 'Looking at the 1H chart with weekly bullish, 4H bullish, and daily bullish — what is today\'s bias?',
       options: ['Bearish — the pullback suggests short', 'Bullish — all timeframes aligned to the upside', 'Neutral — one timeframe must be bearish to trade', 'Wait for the NY open to determine bias'],
@@ -1496,25 +1093,11 @@ export const scenarios: Scenario[] = [
     title: '2–3 AM Silver Bullet — London Open Long',
     category: 'kill-zone',
     difficulty: 'intermediate',
-    instrument: 'GC',
+    instrument: 'PLACEHOLDER',
     timeframe: '1m',
     session: 'London',
     htfContext: 'Gold daily bias bullish. 4H bullish OB below current price. Weekly trend up.',
     sessionContext: '2:00–3:00 AM EST Silver Bullet window (London open). At 2:12 AM, Gold swept a local SSL below the Asia range low, then created a 1m bullish FVG on the reversal impulse.',
-    beforeCandles: [
-      [10,56,62,52,66],[34,60,54,56,64],[58,52,58,48,62],
-      [82,56,88,52,96],[106,94,72,68,100],[130,70,54,64,76],
-      [154,52,36,46,58],[178,34,20,28,40],[202,18,10,12,24],
-    ],
-    beforeZones: [{ x:106,y:20,w:160,h:36,type:ZA }],
-    beforeLines: [
-      { x1:10,y1:62,x2:270,y2:62,color:'rgba(52,211,153,0.4)',dashed:true,label:'SSL swept',lx:14,ly:66 },
-      { x1:106,y1:20,x2:270,y2:20,color:'rgba(245,158,11,0.4)',dashed:true },
-      { x1:106,y1:56,x2:270,y2:56,color:'rgba(245,158,11,0.4)',dashed:true,label:'1m FVG',lx:110,ly:16 },
-    ],
-    afterCandles: [
-      [226,11,6,8,16],[250,7,3,4,12],[274,4,1,1,8],
-    ],
     q1: {
       prompt: 'The 2–3 AM window is one of three ICT Silver Bullet windows. What are the others?',
       options: ['9:00 AM and 12:00 PM EST', '10:00–11:00 AM and 2:00–3:00 PM EST', 'Pre-market (6–7 AM) and post-market (4–5 PM)', '8:00–9:00 AM and 11:00 AM–12:00 PM'],
@@ -1552,28 +1135,11 @@ export const scenarios: Scenario[] = [
     title: 'Market Maker Buy Model — Full Sequence',
     category: 'full-model',
     difficulty: 'advanced',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'Weekly bullish candle. 4H: fresh bullish OB below price. Daily bias established bullish. Upcoming days should be bullish.',
     sessionContext: 'NY AM. Watching for the full ICT market maker buy model: (1) SSL taken, (2) structural break bullish (CHoCH), (3) price trades into discount, (4) entry from OB/FVG in discount. All four phases visible on the 15m chart.',
-    beforeCandles: [
-      [10,88,68,82,94],[34,65,45,58,72],[58,42,62,36,68],
-      [82,60,80,54,86],[106,78,58,70,84],[130,55,35,48,62],
-      [154,32,14,25,40],[178,12,30,6,36],[202,28,50,22,56],
-    ],
-    beforeZones: [
-      { x:154,y:12,w:100,h:42,type:ZG },
-    ],
-    beforeLines: [
-      { x1:10,y1:88,x2:270,y2:88,color:'rgba(248,113,113,0.4)',dashed:true,label:'SSL level',lx:14,ly:84 },
-      { x1:154,y1:58,x2:270,y2:58,color:'rgba(52,211,153,0.4)',dashed:true,label:'CHoCH',lx:158,ly:54 },
-      { x1:154,y1:12,x2:270,y2:12,color:'rgba(52,211,153,0.3)',dashed:true,label:'OB in discount',lx:158,ly:8 },
-      { x1:154,y1:54,x2:270,y2:54,color:'rgba(52,211,153,0.3)',dashed:true },
-    ],
-    afterCandles: [
-      [226,48,32,42,56],[250,30,16,24,38],[274,14,6,8,22],[298,8,2,4,14],
-    ],
     q1: {
       prompt: 'The four phases of the ICT Market Maker Buy Model are: SSL taken, CHoCH, price in discount, entry from OB. Which phase are you currently in?',
       options: ['Phase 1 — SSL still needs to be taken', 'Phase 3 — SSL taken, CHoCH formed, now in discount looking for OB entry', 'Phase 4 — already in the trade', 'Phase 2 — waiting for CHoCH'],
@@ -1611,29 +1177,11 @@ export const scenarios: Scenario[] = [
     title: 'Embedded FVG Inside OB — Precision Long',
     category: 'fvg',
     difficulty: 'advanced',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '5m',
     session: 'NY AM',
     htfContext: 'Daily bullish. 4H higher highs forming. Prior session closed bullish.',
     sessionContext: 'NY AM. A 5m bullish OB formed after sweeping SSL. Inside that OB, a smaller 1m FVG is embedded. Price has pulled back to touch the FVG (inside the OB) — the most refined entry within the broader zone.',
-    beforeCandles: [
-      [10,78,60,72,84],[34,58,40,52,64],[58,38,55,32,60],
-      [82,52,70,46,76],[106,68,85,62,90],[130,82,65,76,88],
-      [154,62,48,56,70],[178,46,34,40,52],[202,32,22,28,40],
-    ],
-    beforeZones: [
-      { x:82,y:46,w:180,h:40,type:ZB },
-      { x:130,y:62,w:80,h:22,type:ZA },
-    ],
-    beforeLines: [
-      { x1:82,y1:46,x2:260,y2:46,color:'rgba(96,165,250,0.4)',dashed:true,label:'Bull OB top',lx:86,ly:42 },
-      { x1:82,y1:86,x2:260,y2:86,color:'rgba(96,165,250,0.4)',dashed:true,label:'Bull OB bot',lx:86,ly:90 },
-      { x1:130,y1:62,x2:210,y2:62,color:'rgba(245,158,11,0.4)',dashed:true,label:'FVG inside OB',lx:134,ly:58 },
-      { x1:130,y1:84,x2:210,y2:84,color:'rgba(245,158,11,0.4)',dashed:true },
-    ],
-    afterCandles: [
-      [226,20,12,14,26],[250,12,6,8,18],[274,7,2,3,12],[298,3,1,1,7],
-    ],
     q1: {
       prompt: 'A 1m FVG is embedded inside a 5m bullish OB. Which one do you use as the entry trigger?',
       options: ['The OB only — the FVG is too small', 'The FVG inside the OB — it is the most refined entry with the best R:R', 'The midpoint of the OB — ignore the FVG'],
@@ -1671,24 +1219,11 @@ export const scenarios: Scenario[] = [
     title: 'Opening Gap — NWOG Fills Then Delivers',
     category: 'judas-swing',
     difficulty: 'intermediate',
-    instrument: 'ES',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'ES gapped down at the weekly open below prior Friday\'s close — this creates a New Week Opening Gap (NWOG). Daily bias established bullish. 4H structure bullish.',
     sessionContext: 'NY AM Monday open. ES has a gap below Friday\'s close (NWOG). Price is trading inside the gap. In a bullish context, gaps are typically filled before price continues in the macro direction.',
-    beforeCandles: [
-      [10,95,75,88,100],[34,72,55,65,78],[58,52,68,46,74],
-      [82,65,82,58,88],[106,80,62,74,86],[130,60,40,54,68],
-      [154,38,20,32,46],[178,18,35,12,42],[202,32,52,26,58],
-    ],
-    beforeLines: [
-      { x1:10,y1:88,x2:270,y2:88,color:'rgba(148,163,184,0.5)',dashed:true,label:'Friday close (gap top)',lx:14,ly:84 },
-      { x1:10,y1:108,x2:270,y2:108,color:'rgba(148,163,184,0.4)',dashed:true,label:'Gap bottom',lx:14,ly:112 },
-    ],
-    beforeZones: [{ x:10,y:88,w:270,h:20,type:ZS }],
-    afterCandles: [
-      [226,50,35,44,56],[250,33,18,27,40],[274,16,8,10,22],[298,9,3,5,14],
-    ],
     q1: {
       prompt: 'ES gapped below Friday\'s close, creating a New Week Opening Gap (NWOG). In a bullish daily context, what typically happens to the gap?',
       options: ['Price ignores it and continues lower', 'Price fills the gap (returns to Friday\'s close) before continuing in the macro direction', 'Price always accelerates through the gap'],
@@ -1726,19 +1261,11 @@ export const scenarios: Scenario[] = [
     title: 'Low Probability Day — No Clear Setup',
     category: 'full-model',
     difficulty: 'beginner',
-    instrument: 'NQ',
+    instrument: 'PLACEHOLDER',
     timeframe: '15m',
     session: 'NY AM',
     htfContext: 'NQ is consolidating at the 4H 50% level. No clear 4H bias — equal highs and lows on the 4H. Daily candles are inside bars (no expansion). Upcoming week has CPI on Wednesday.',
     sessionContext: 'NY AM. NQ opened and immediately began choppy price action with no clear ICT structure. No displacement, no clean OBs, no swing highs or lows to define structure. Price is oscillating around the open.',
-    beforeCandles: [
-      [10,56,48,52,60],[34,50,58,46,62],[58,55,47,51,59],
-      [82,49,56,44,60],[106,53,46,49,57],[130,47,54,42,58],
-      [154,52,45,48,56],[178,46,53,42,57],[202,50,44,46,54],
-    ],
-    afterCandles: [
-      [226,46,52,42,56],[250,50,44,46,54],[274,45,50,41,55],[298,48,43,44,52],
-    ],
     q1: {
       prompt: 'The 15m chart shows choppy price action, no displacement, no clear OBs, and equal highs and lows. What is the correct assessment?',
       options: ['Trade both sides — chop offers many small opportunities', 'Low probability environment — no clear ICT setup present, sit out', 'Increase position size to profit from the range'],

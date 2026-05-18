@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { scenarios, type Scenario, type Category, type Difficulty } from './data/scenarios'
-import { ScenarioChart } from './components/ScenarioChart'
+import { ReplayChartLW } from './components/ReplayChartLW'
 import { useProgress } from './hooks/useProgress'
 import './index.css'
 
@@ -175,11 +175,8 @@ function Player({ scenario, onBack, onComplete }: { scenario:Scenario; onBack:()
         {/* Chart */}
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-2">{submitted?'What happened next':'Study the chart — make your decision'}</p>
-          <ScenarioChart
+          <ReplayChartLW
             mode={submitted?'after':'before'}
-            beforeCandles={scenario.beforeCandles} afterCandles={scenario.afterCandles}
-            beforeZones={scenario.beforeZones} afterZones={scenario.afterZones}
-            beforeLines={scenario.beforeLines} afterLines={scenario.afterLines}
             scenarioId={scenario.id}
           />
         </div>
