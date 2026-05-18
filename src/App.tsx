@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { scenarios, type Scenario, type Category, type Difficulty } from './data/scenarios'
-import { ReplayChartLW } from './components/ReplayChartLW'
+import { ConceptDiagram } from './components/ConceptDiagram'
 import { useProgress } from './hooks/useProgress'
 import './index.css'
 
@@ -175,9 +175,9 @@ function Player({ scenario, onBack, onComplete }: { scenario:Scenario; onBack:()
         {/* Chart */}
         <div>
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 mb-2">{submitted?'What happened next':'Study the chart — make your decision'}</p>
-          <ReplayChartLW
+          <ConceptDiagram
             mode={submitted?'after':'before'}
-            scenarioId={scenario.id}
+            scenario={scenario}
           />
         </div>
 
