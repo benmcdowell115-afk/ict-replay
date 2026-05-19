@@ -68,7 +68,7 @@ function Home({ onStart, progress }: { onStart:(s:Scenario)=>void; progress:Retu
               <div className="flex gap-6">
                 {[
                   { l:'Done',    v:`${progress.completed}/${scenarios.length}`, c:'#f59e0b' },
-                  { l:'Avg',     v:`${progress.avgScore}/4`,                    c: parseFloat(progress.avgScore) >= 3 ? '#34d399' : parseFloat(progress.avgScore) >= 2 ? '#f59e0b' : '#f87171' },
+                  { l:'Avg',     v: progress.avgScore === '—' ? '—' : `${progress.avgScore}/4`,  c: progress.avgScore === '—' ? '#475569' : parseFloat(progress.avgScore) >= 3 ? '#34d399' : parseFloat(progress.avgScore) >= 2 ? '#f59e0b' : '#f87171' },
                   { l:'Perfect', v:`${progress.perfect}`,                       c:'#f59e0b' },
                 ].map(s => (
                   <div key={s.l} className="text-center">
