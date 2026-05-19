@@ -809,6 +809,131 @@ function noSetup(): DC {
   }
 }
 
+// JUDAS LONG — overnight range → London SSL sweep wick → reversal → NY bullish
+function judasLong(): DC {
+  const RH=68, RL=44, SSL=36, BSL=88
+  const candles: CD[] = [
+    // overnight range (accumulation)
+    {o:58,h:62,l:52,c:60},{o:60,h:64,l:55,c:56},{o:56,h:61,l:53,c:60},
+    {o:60,h:RH,l:56,c:65},{o:65,h:66,l:60,c:62},{o:62,h:65,l:59,c:63},
+    {o:63,h:67,l:58,c:61},{o:61,h:63,l:RL,c:62},
+    // JUDAS — London wick BELOW range low (SSL sweep), body closes back ABOVE RL
+    {o:62,h:63,l:SSL,c:RL+4},
+    // recovery + displacement up
+    {o:RL+4,h:RL+12,l:RL+2,c:RL+11},
+    {o:RL+11,h:RL+22,l:RL+9,c:RL+21},
+    // FVG from displacement
+    {o:RL+21,h:RL+32,l:RL+19,c:RL+30},
+    // small retracement into FVG
+    {o:RL+30,h:RL+31,l:RL+20,c:RL+22},
+    // DECISION: at FVG
+    {o:RL+22,h:RL+26,l:RL+18,c:RL+24},
+    // NY distribution to BSL
+    {o:RL+24,h:RL+34,l:RL+22,c:RL+34},{o:RL+34,h:RL+44,l:RL+32,c:RL+44},
+    {o:RL+44,h:BSL,l:RL+42,c:BSL-1},
+  ]
+  return {
+    candles, di: 13,
+    before: [
+      level(RH, '#64748b', 'Asia High', false),
+      level(RL, '#64748b', 'Asia Low', false),
+      level(SSL,'#f87171','SSL'),
+    ],
+    after: [
+      level(RH, '#64748b', 'Asia High', false),
+      level(RL, '#64748b', 'Asia Low', false),
+      level(SSL,'#f87171','SSL'),
+      level(BSL,'#34d399','BSL TARGET'),
+      mark(8, 'below','JUDAS SWEEP','#f87171'),
+      mark(10,'below','DISPLACEMENT','#34d399'),
+      mark(13,'above','DECISION (FVG)','#f59e0b'),
+    ],
+  }
+}
+
+// MITIGATION BLOCK LONG — OB forms → first touch holds → partial fill → second touch (decision) → bull
+function mitigationBlockLong(): DC {
+  const OB_TOP=52, OB_BOT=40, BSL=84
+  const candles: CD[] = [
+    // downtrend context
+    {o:72,h:74,l:70,c:70},{o:70,h:71,l:67,c:67},
+    // OB forms (last bull candle before bear displacement)
+    {o:67,h:OB_TOP,l:OB_BOT,c:OB_TOP-1},
+    // big bear displacement
+    {o:OB_TOP-1,h:OB_TOP,l:28,c:30},
+    {o:30,h:34,l:26,c:28},{o:28,h:30,l:24,c:26},
+    // FIRST TOUCH: rally back to OB — partial fill, holds
+    {o:26,h:31,l:24,c:31},{o:31,h:40,l:29,c:40},
+    {o:40,h:OB_BOT+6,l:38,c:OB_BOT+4},
+    // bounce 1R off OB
+    {o:OB_BOT+4,h:OB_TOP-2,l:OB_BOT+2,c:OB_TOP-3},
+    // pullback AGAIN toward OB (second touch / mitigation)
+    {o:OB_TOP-3,h:OB_TOP-2,l:44,c:45},
+    {o:45,h:48,l:OB_BOT+2,c:OB_BOT+3},
+    // DECISION: at second touch
+    {o:OB_BOT+3,h:OB_TOP+1,l:OB_BOT,c:(OB_TOP+OB_BOT)/2|0},
+    // bull continuation
+    {o:(OB_TOP+OB_BOT)/2|0,h:60,l:44,c:60},
+    {o:60,h:70,l:58,c:70},{o:70,h:BSL,l:68,c:BSL-1},
+  ]
+  const xL = cx(2) - BW
+  return {
+    candles, di: 12,
+    before: [
+      zone(OB_BOT, OB_TOP, '#60a5fa', .12, xL),
+    ],
+    after: [
+      level(OB_TOP,'#60a5fa','MITIGATION TOP'), level(OB_BOT,'#60a5fa','MITIGATION BOT'),
+      level(BSL,'#34d399','BSL TARGET'),
+      zone(OB_BOT, OB_TOP, '#60a5fa', .22, xL),
+      mark(2, 'above','OB FORMS','#60a5fa','circle'),
+      mark(8, 'below','1ST TOUCH','#94a3b8'),
+      mark(11,'below','2ND TOUCH','#f59e0b'),
+      mark(12,'above','DECISION','#f59e0b'),
+    ],
+  }
+}
+
+// IRL TO ERL — dealing range with equal lows (IRL) swept → delivers to major swing low (ERL)
+function irlToErl(): DC {
+  const RH=78, RL=30, IRL=42, ERL=18
+  const candles: CD[] = [
+    // at range top
+    {o:74,h:RH,l:72,c:73},{o:73,h:74,l:68,c:69},
+    // ranging / inside range
+    {o:69,h:72,l:64,c:65},{o:65,h:68,l:60,c:62},
+    {o:62,h:65,l:58,c:64},{o:64,h:66,l:60,c:61},
+    // near IRL (equal lows)
+    {o:61,h:62,l:IRL,c:IRL+2},{o:IRL+2,h:IRL+4,l:IRL,c:IRL+3},
+    // IRL SWEEP — wick below IRL, body stays near
+    {o:IRL+3,h:IRL+4,l:IRL-4,c:IRL+1},
+    // brief consolidation near IRL
+    {o:IRL+1,h:IRL+4,l:IRL-2,c:IRL+2},{o:IRL+2,h:IRL+3,l:IRL-1,c:IRL},
+    // DECISION: new leg starts
+    {o:IRL,h:IRL+2,l:IRL-3,c:IRL-2},
+    // delivery to ERL
+    {o:IRL-2,h:IRL,l:IRL-8,c:IRL-7},{o:IRL-7,h:IRL-5,l:IRL-14,c:IRL-13},
+    {o:IRL-13,h:IRL-11,l:ERL+2,c:ERL+3},{o:ERL+3,h:ERL+5,l:ERL,c:ERL+1},
+  ]
+  return {
+    candles, di: 11,
+    before: [
+      level(RH, '#64748b','Range High (ERL)', false),
+      level(RL, '#64748b','Range Low', false),
+      level(IRL,'#f59e0b','IRL — Equal Lows'),
+      level(ERL,'#f87171','ERL — Major Low'),
+    ],
+    after: [
+      level(RH, '#64748b','Range High', false),
+      level(IRL,'#f59e0b','IRL SWEPT'),
+      level(ERL,'#f87171','ERL — TARGET'),
+      mark(8,  'below','IRL SWEEP','#f59e0b'),
+      mark(11, 'above','DECISION','#f59e0b'),
+      mark(15, 'below','ERL REACHED','#f87171','circle'),
+    ],
+  }
+}
+
 // ── Scenario map ──────────────────────────────────────────────────────────────
 function getDiagram(s: Scenario): DC {
   switch (s.id) {
@@ -842,6 +967,14 @@ function getDiagram(s: Scenario): DC {
     case 's28': return bullFVG()
     case 's29': return sslSweep()
     case 's30': return noSetup()
+    case 's31': return amdBull()
+    case 's32': return judasLong()
+    case 's33': return mitigationBlockLong()
+    case 's34': return breakerBear()
+    case 's35': return irlToErl()
+    case 's36': return bslSweep()
+    case 's37': return oteZone()
+    case 's38': return amdBear()
     default:    return bullFVG()
   }
 }
