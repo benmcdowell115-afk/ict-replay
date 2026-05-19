@@ -21,3 +21,23 @@ body { margin: 0; background: #05050a; color: #fff; font-family: system-ui, sans
   to   { transform: scale(1); opacity: 1; }
 }
 .pop-in { animation: pop-in 0.18s ease-out both; }
+
+.scenario-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.scenario-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.scenario-card:nth-child(1)  { animation: card-in 0.3s 0.00s ease both; }
+.scenario-card:nth-child(2)  { animation: card-in 0.3s 0.04s ease both; }
+.scenario-card:nth-child(3)  { animation: card-in 0.3s 0.08s ease both; }
+.scenario-card:nth-child(4)  { animation: card-in 0.3s 0.12s ease both; }
+.scenario-card:nth-child(5)  { animation: card-in 0.3s 0.16s ease both; }
+.scenario-card:nth-child(6)  { animation: card-in 0.3s 0.20s ease both; }
+.scenario-card:nth-child(n+7){ animation: card-in 0.3s 0.24s ease both; }

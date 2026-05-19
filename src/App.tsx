@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { scenarios, type Scenario, type Category, type Difficulty } from './data/scenarios'
 import { ConceptDiagram } from './components/ConceptDiagram'
 import { useProgress } from './hooks/useProgress'
@@ -36,99 +36,145 @@ function Home({ onStart, progress }: { onStart:(s:Scenario)=>void; progress:Retu
     (diff === 'all' || s.difficulty === diff)
   )
 
+  const donePct = Math.round((progress.completed / scenarios.length) * 100)
+
   return (
     <div style={{ background:'#05050a', minHeight:'100vh' }}>
-      <header style={{ background:'#07070e', borderBottom:'1px solid rgba(30,41,59,0.5)' }}>
-        <div className="max-w-5xl mx-auto px-4 py-4">
+      <header style={{ background:'#07070e', borderBottom:'1px solid rgba(30,41,59,0.5)', position:'relative', overflow:'hidden' }}>
+        {/* Amber accent line */}
+        <div style={{ position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg,transparent,rgba(245,158,11,0.7),transparent)' }}/>
+        {/* Subtle radial glow */}
+        <div style={{ position:'absolute', top:'-60px', left:'50%', transform:'translateX(-50%)', width:500, height:200, background:'radial-gradient(ellipse,rgba(245,158,11,0.06),transparent 70%)', pointerEvents:'none' }}/>
 
+        <div className="max-w-5xl mx-auto px-4 pt-5 pb-4" style={{ position:'relative' }}>
           {/* Top row */}
           <div className="flex items-start justify-between flex-wrap gap-6 mb-5">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
-                     style={{ background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.3)' }}>🎯</div>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                     style={{ background:'rgba(245,158,11,0.12)', border:'1px solid rgba(245,158,11,0.3)', boxShadow:'0 0 18px rgba(245,158,11,0.1)' }}>🎯</div>
                 <div>
-                  <p className="font-black tracking-widest text-white text-sm m-0">ICT REPLAY TRAINER</p>
+                  <p className="font-black tracking-widest text-white m-0" style={{ fontSize:13, letterSpacing:'0.18em' }}>ICT REPLAY TRAINER</p>
                   <p className="text-slate-600 text-[9px] tracking-widest uppercase m-0">by Chronic Trading</p>
                 </div>
               </div>
-              <p className="text-slate-500 text-xs max-w-xs leading-relaxed m-0">
+              <p className="text-slate-500 leading-relaxed m-0" style={{ fontSize:11.5, maxWidth:300 }}>
                 Study real ICT setups. Identify the concept, pick direction, name the draw, set your entry.
               </p>
             </div>
-            <div className="flex gap-5">
-              {[{l:'Done',v:`${progress.completed}/${scenarios.length}`},{l:'Avg',v:`${progress.avgScore}/4`},{l:'Perfect',v:`${progress.perfect}`}].map(s=>(
-                <div key={s.l} className="text-center">
-                  <p className="text-2xl font-black text-white m-0" style={{fontFamily:'monospace'}}>{s.v}</p>
-                  <p className="text-[9px] text-slate-600 uppercase tracking-widest mt-1 m-0">{s.l}</p>
+
+            {/* Stats */}
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:10 }}>
+              <div className="flex gap-6">
+                {[
+                  { l:'Done',    v:`${progress.completed}/${scenarios.length}`, c:'#f59e0b' },
+                  { l:'Avg',     v:`${progress.avgScore}/4`,                    c: parseFloat(progress.avgScore) >= 3 ? '#34d399' : parseFloat(progress.avgScore) >= 2 ? '#f59e0b' : '#f87171' },
+                  { l:'Perfect', v:`${progress.perfect}`,                       c:'#f59e0b' },
+                ].map(s => (
+                  <div key={s.l} className="text-center">
+                    <p className="font-black text-white m-0" style={{ fontFamily:'monospace', fontSize:22, color:s.c, textShadow:`0 0 16px ${s.c}50` }}>{s.v}</p>
+                    <p className="text-slate-600 uppercase tracking-widest m-0 mt-0.5" style={{ fontSize:8 }}>{s.l}</p>
+                  </div>
+                ))}
+              </div>
+              {/* Progress bar */}
+              {progress.completed > 0 && (
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <div style={{ width:120, height:3, borderRadius:2, background:'rgba(255,255,255,0.06)', overflow:'hidden' }}>
+                    <div style={{ width:`${donePct}%`, height:'100%', background:'linear-gradient(90deg,#f59e0b,#fbbf24)', borderRadius:2, transition:'width 0.6s ease' }}/>
+                  </div>
+                  <span style={{ fontSize:9, fontWeight:700, color:'rgba(245,158,11,0.6)' }}>{donePct}%</span>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap gap-2">
-            <button onClick={()=>setFilter('all')}
-              className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${filter==='all'?'bg-slate-700 border-slate-600 text-white':'border-slate-800 text-slate-500 hover:border-slate-700 hover:text-slate-300'}`}>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6, alignItems:'center' }}>
+            <button onClick={() => setFilter('all')}
+              style={{ fontSize:10, fontWeight:700, padding:'5px 13px', borderRadius:9, border:`1px solid ${filter==='all'?'rgba(100,116,139,0.5)':'rgba(30,41,59,0.8)'}`, background:filter==='all'?'rgba(100,116,139,0.15)':'transparent', color:filter==='all'?'#e2e8f0':'#64748b', cursor:'pointer', transition:'all 0.15s' }}>
               All
             </button>
             {cats.map(c => {
-              const m = CAT[c]
-              return <button key={c} onClick={()=>setFilter(c)}
-                className="text-[10px] font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer"
-                style={{ background:filter===c?m.bg:'transparent', borderColor:filter===c?m.border:'#1e293b', color:filter===c?m.color:'#64748b' }}>
-                {m.label}
-              </button>
+              const m = CAT[c], active = filter === c
+              return (
+                <button key={c} onClick={() => setFilter(c)}
+                  style={{ fontSize:10, fontWeight:700, padding:'5px 13px', borderRadius:9, border:`1px solid ${active?m.border:'rgba(30,41,59,0.8)'}`, background:active?m.bg:'transparent', color:active?m.color:'#64748b', cursor:'pointer', transition:'all 0.15s', display:'flex', alignItems:'center', gap:5 }}>
+                  <span style={{ width:5, height:5, borderRadius:'50%', background:m.color, opacity:active?1:0.4, display:'inline-block', boxShadow:active?`0 0 6px ${m.color}`:'none' }}/>
+                  {m.label}
+                </button>
+              )
             })}
-            <span className="w-px bg-slate-800 self-stretch mx-1" />
+            <div style={{ width:1, height:18, background:'rgba(30,41,59,0.8)', margin:'0 2px' }}/>
             {(['all','beginner','intermediate','advanced'] as const).map(d => (
-              <button key={d} onClick={()=>setDiff(d)}
-                className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border capitalize transition-all cursor-pointer ${
-                  diff===d
-                    ? d==='all'          ? 'bg-slate-700 border-slate-600 text-white'
-                    : d==='beginner'     ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                    : d==='intermediate' ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
-                    :                     'bg-red-500/15 border-red-500/30 text-red-400'
-                    : 'border-slate-800 text-slate-500 hover:border-slate-700'
-                }`}>{d}</button>
+              <button key={d} onClick={() => setDiff(d)}
+                style={{ fontSize:10, fontWeight:700, padding:'5px 13px', borderRadius:9, cursor:'pointer', transition:'all 0.15s', textTransform:'capitalize',
+                  border: diff===d
+                    ? d==='all' ? '1px solid rgba(100,116,139,0.5)' : d==='beginner' ? '1px solid rgba(52,211,153,0.35)' : d==='intermediate' ? '1px solid rgba(245,158,11,0.35)' : '1px solid rgba(248,113,113,0.35)'
+                    : '1px solid rgba(30,41,59,0.8)',
+                  background: diff===d
+                    ? d==='all' ? 'rgba(100,116,139,0.15)' : d==='beginner' ? 'rgba(52,211,153,0.1)' : d==='intermediate' ? 'rgba(245,158,11,0.1)' : 'rgba(248,113,113,0.1)'
+                    : 'transparent',
+                  color: diff===d
+                    ? d==='all' ? '#e2e8f0' : d==='beginner' ? '#34d399' : d==='intermediate' ? '#f59e0b' : '#f87171'
+                    : '#64748b',
+                }}>
+                {d}
+              </button>
             ))}
+            <span style={{ marginLeft:'auto', fontSize:10, color:'rgba(100,116,139,0.45)', fontWeight:600 }}>
+              {shown.length} scenario{shown.length !== 1 ? 's' : ''}
+            </span>
           </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-4">
+      <main className="max-w-5xl mx-auto px-4 py-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {shown.map(s => {
             const m = CAT[s.category]
             const res = progress.getResult(s.id)
             const done = !!res, perfect = res?.score === 4
             return (
-              <button key={s.id} onClick={()=>onStart(s)}
-                className="text-left rounded-2xl border p-4 transition-all cursor-pointer"
-                style={{ background:'#0b0b14', borderColor:done?m.border:'rgba(30,41,59,0.8)' }}
-                onMouseEnter={e=>(e.currentTarget.style.transform='translateY(-2px)')}
-                onMouseLeave={e=>(e.currentTarget.style.transform='')}>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
-                        style={{ color:m.color, background:m.bg, border:`1px solid ${m.border}` }}>{m.label}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-bold capitalize" style={{ color:DIFF[s.difficulty] }}>{s.difficulty}</span>
-                    {done && <span className="text-[10px] font-black" style={{ color:perfect?'#f59e0b':'#64748b' }}>{perfect?'★':`${res!.score}/4`}</span>}
+              <button key={s.id} onClick={() => onStart(s)}
+                className="scenario-card text-left rounded-2xl border p-4 transition-all cursor-pointer"
+                style={{
+                  background: done ? `linear-gradient(160deg,${m.color}06,#0b0b14 50%)` : '#0b0b14',
+                  borderColor: done ? m.border : 'rgba(30,41,59,0.8)',
+                  position: 'relative', overflow: 'hidden',
+                }}>
+                {/* Category color left bar */}
+                <div style={{ position:'absolute', top:0, left:0, width:3, height:'100%', background:m.color, opacity: done ? 0.7 : 0.3, borderRadius:'12px 0 0 12px' }}/>
+                <div style={{ paddingLeft:8 }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span style={{ fontSize:9, fontWeight:900, letterSpacing:'0.1em', textTransform:'uppercase', padding:'3px 9px', borderRadius:999, color:m.color, background:m.bg, border:`1px solid ${m.border}` }}>{m.label}</span>
+                    <div className="flex items-center gap-2">
+                      <span style={{ fontSize:9, fontWeight:700, textTransform:'capitalize', color:DIFF[s.difficulty] }}>{s.difficulty}</span>
+                      {done && (
+                        <span style={{ fontSize:11, fontWeight:900, color:perfect?'#f59e0b':'#475569', textShadow:perfect?'0 0 12px rgba(245,158,11,0.5)':'none' }}>
+                          {perfect ? '★' : `${res!.score}/4`}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <p className="text-sm font-bold text-white leading-snug mb-2">{s.title}</p>
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-600">
-                  <span style={{fontFamily:'monospace'}}>{s.instrument}</span>
-                  <span>·</span><span>{s.timeframe}</span><span>·</span><span>{s.session}</span>
-                  <span className="ml-auto" style={{ color:perfect?'#f59e0b':done?'#475569':'rgba(245,158,11,0.6)' }}>
-                    {perfect?'Perfect ✓':done?'Retry →':'Start →'}
-                  </span>
+                  <p style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.93)', lineHeight:1.35, marginBottom:10 }}>{s.title}</p>
+                  <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:10, color:'#475569' }}>
+                    <span style={{ fontFamily:'monospace' }}>{s.instrument}</span>
+                    <span>·</span><span>{s.timeframe}</span><span>·</span><span>{s.session}</span>
+                    <span style={{ marginLeft:'auto', fontWeight:700, color: perfect?'#f59e0b' : done?'#475569' : `${m.color}90` }}>
+                      {perfect ? 'Perfect ✓' : done ? 'Retry →' : 'Start →'}
+                    </span>
+                  </div>
                 </div>
               </button>
             )
           })}
         </div>
-        {shown.length === 0 && <p className="text-center text-slate-600 py-16">No scenarios match this filter.</p>}
+        {shown.length === 0 && (
+          <div style={{ textAlign:'center', padding:'80px 0' }}>
+            <p style={{ fontSize:14, color:'rgba(100,116,139,0.5)', fontWeight:600 }}>No scenarios match this filter.</p>
+          </div>
+        )}
       </main>
     </div>
   )
@@ -139,37 +185,53 @@ function Player({ scenario, onBack, onComplete }: { scenario:Scenario; onBack:()
   const [answers,   setAnswers]   = useState<Record<string,number>>({})
   const [submitted, setSubmitted] = useState(false)
   const [score,     setScore]     = useState(0)
+  const resultRef = useRef<HTMLDivElement>(null)
   const m = CAT[scenario.category]
 
   const handleSubmit = () => {
     let s = 0
     QS.forEach(k => { if (answers[k] === scenario[k].correct) s++ })
     setScore(s); setSubmitted(true); onComplete(s)
+    setTimeout(() => resultRef.current?.scrollIntoView({ behavior:'smooth', block:'center' }), 80)
   }
   const allAnswered = QS.every(k => answers[k] !== undefined)
 
   return (
     <div style={{ background:'#05050a', minHeight:'100vh' }}>
       {/* Nav */}
-      <div style={{ background:'#07070e', borderBottom:'1px solid rgba(30,41,59,0.5)', padding:'12px 16px', display:'flex', alignItems:'center', gap:12 }}>
-        <button onClick={onBack} style={{ fontSize:12, fontWeight:600, color:'#64748b', background:'none', border:'none', cursor:'pointer' }}>← Back</button>
-        <span style={{ width:1, height:16, background:'#1e293b', display:'inline-block' }} />
-        <span style={{ fontSize:11, color:'#475569', fontFamily:'monospace' }}>{scenario.instrument} · {scenario.timeframe} · {scenario.session}</span>
-        <span style={{ marginLeft:'auto', fontSize:9, fontWeight:900, textTransform:'uppercase', letterSpacing:'0.1em', padding:'2px 8px', borderRadius:999, color:m.color, background:m.bg, border:`1px solid ${m.border}` }}>{m.label}</span>
+      <div style={{ background:'#07070e', borderBottom:'1px solid rgba(30,41,59,0.5)', padding:'10px 16px', display:'flex', alignItems:'center', gap:10, position:'sticky', top:0, zIndex:40 }}>
+        <button onClick={onBack} style={{ fontSize:11, fontWeight:700, color:'#64748b', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(30,41,59,0.8)', borderRadius:8, padding:'5px 12px', cursor:'pointer', transition:'all 0.15s', display:'flex', alignItems:'center', gap:5 }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color='#e2e8f0'; (e.currentTarget as HTMLElement).style.borderColor='rgba(100,116,139,0.4)' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color='#64748b'; (e.currentTarget as HTMLElement).style.borderColor='rgba(30,41,59,0.8)' }}>
+          ← Back
+        </button>
+        <span style={{ width:1, height:14, background:'rgba(30,41,59,0.8)', display:'inline-block' }} />
+        <span style={{ fontSize:10.5, color:'#475569', fontFamily:'monospace' }}>{scenario.instrument} · {scenario.timeframe} · {scenario.session}</span>
+        <span style={{ marginLeft:'auto', fontSize:9, fontWeight:900, textTransform:'uppercase', letterSpacing:'0.1em', padding:'3px 10px', borderRadius:999, color:m.color, background:m.bg, border:`1px solid ${m.border}` }}>{m.label}</span>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-3 space-y-3">
+      <div className="max-w-4xl mx-auto px-4 py-4 space-y-3">
         {/* Title */}
-        <div>
-          <h1 className="text-xl font-black text-white m-0">{scenario.title}</h1>
-          <span className="text-[10px] font-bold uppercase" style={{ color:DIFF[scenario.difficulty] }}>{scenario.difficulty}</span>
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
+          <div>
+            <h1 style={{ fontSize:20, fontWeight:900, color:'white', margin:0, lineHeight:1.2 }}>{scenario.title}</h1>
+            <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.1em', color:DIFF[scenario.difficulty] }}>{scenario.difficulty}</span>
+          </div>
+          {submitted && (
+            <div style={{ flexShrink:0, width:44, height:44, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'monospace', fontWeight:900, fontSize:16,
+              background: score===4?'rgba(245,158,11,0.12)':score>=3?'rgba(52,211,153,0.1)':'rgba(100,116,139,0.08)',
+              border: `1px solid ${score===4?'rgba(245,158,11,0.35)':score>=3?'rgba(52,211,153,0.3)':'rgba(100,116,139,0.2)'}`,
+              color: score===4?'#f59e0b':score>=3?'#34d399':'#94a3b8' }}>
+              {score}/4
+            </div>
+          )}
         </div>
 
         {/* Context */}
-        <div className="rounded-2xl border border-slate-800/50 p-3 space-y-1.5" style={{ background:'#0b0b14' }}>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 m-0">Context</p>
-          <p className="text-xs text-slate-400 leading-relaxed m-0"><span className="text-slate-300 font-semibold">HTF: </span>{scenario.htfContext}</p>
-          <p className="text-xs text-slate-400 leading-relaxed m-0"><span className="text-slate-300 font-semibold">Session: </span>{scenario.sessionContext}</p>
+        <div style={{ borderRadius:16, border:`1px solid ${m.border}`, padding:'12px 14px', background:`linear-gradient(160deg,${m.color}06,#0b0b14 60%)` }}>
+          <p style={{ fontSize:9, fontWeight:900, textTransform:'uppercase', letterSpacing:'0.18em', color:m.color, opacity:0.7, margin:'0 0 8px' }}>Context</p>
+          <p style={{ fontSize:11.5, color:'rgba(148,163,184,0.9)', lineHeight:1.65, margin:'0 0 6px' }}><span style={{ color:'rgba(226,232,240,0.85)', fontWeight:600 }}>HTF: </span>{scenario.htfContext}</p>
+          <p style={{ fontSize:11.5, color:'rgba(148,163,184,0.9)', lineHeight:1.65, margin:0 }}><span style={{ color:'rgba(226,232,240,0.85)', fontWeight:600 }}>Session: </span>{scenario.sessionContext}</p>
         </div>
 
         {/* Chart */}
@@ -245,7 +307,7 @@ function Player({ scenario, onBack, onComplete }: { scenario:Scenario; onBack:()
 
         {/* Result */}
         {submitted && (
-          <div className="rounded-2xl border p-5 text-center space-y-4 pop-in"
+          <div ref={resultRef} className="rounded-2xl border p-5 text-center space-y-4 pop-in"
                style={{ background:score===4?'rgba(245,158,11,0.05)':score>=3?'rgba(52,211,153,0.05)':'rgba(100,116,139,0.05)', borderColor:score===4?'rgba(245,158,11,0.3)':score>=3?'rgba(52,211,153,0.3)':'rgba(100,116,139,0.25)' }}>
             <p className="text-5xl font-black leading-none m-0"
                style={{ fontFamily:'monospace', color:score===4?'#f59e0b':score>=3?'#34d399':'#94a3b8' }}>{score}/4</p>
